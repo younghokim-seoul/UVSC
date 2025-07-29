@@ -1,0 +1,52 @@
+package com.cm.uvsc.component
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import com.cm.uvsc.MainNavigator
+import com.cm.uvsc.route.RouteHome
+import com.cm.uvsc.route.RouteReceiveHistory
+import com.cm.uvsc.route.RouteUvscHistory
+import com.cm.uvsc.ui.HomeRoute
+import com.cm.uvsc.ui.ReceiveRoute
+import com.cm.uvsc.ui.USCVRoute
+
+@Composable
+internal fun MainNavHost(
+    navigator: MainNavigator,
+    padding: PaddingValues,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceDim)
+    ) {
+        NavHost(
+            navController = navigator.navController,
+            startDestination = navigator.startDestination,
+        ) {
+            composable<RouteHome> {
+                HomeRoute(
+                    padding = padding,
+                )
+            }
+            composable<RouteUvscHistory> {
+                USCVRoute(
+                    padding = padding,
+                )
+            }
+            composable<RouteReceiveHistory> {
+                ReceiveRoute(
+                    padding = padding,
+                )
+            }
+        }
+    }
+}
