@@ -1,7 +1,18 @@
 package com.cm.uvsc.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -13,9 +24,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.cm.uvsc.MainNavigator
 import com.cm.uvsc.MainTab
-import com.cm.uvsc.component.MainNavHost
-import com.cm.uvsc.component.MainTopBar
 import com.cm.uvsc.rememberMainNavigator
+import com.cm.uvsc.ui.component.MainNavHost
+import com.cm.uvsc.ui.component.MainTopBar
+import com.cm.uvsc.ui.theme.USCVColor
 import kotlinx.collections.immutable.toPersistentList
 
 @Composable
@@ -43,18 +55,17 @@ private fun MainScreenContent(
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.navigationBarsPadding(),
         snackbarHost = { SnackbarHost(snackBarHostState) },
         topBar = {
             MainTopBar(
                 modifier = Modifier
-                    .navigationBarsPadding()
-                    .padding(start = 8.dp, end = 8.dp, top = 28.dp),
+                    .padding(start = 8.dp, end = 8.dp, top = 28.dp, bottom = 28.dp),
                 visible = navigator.shouldShowBottomBar(),
                 tabs = MainTab.entries.toPersistentList(),
                 currentTab = navigator.currentTab,
                 onTabSelected = onTabSelected,
-                )
+            )
         },
         content = { padding ->
             MainNavHost(

@@ -1,4 +1,4 @@
-package com.cm.uvsc.component
+package com.cm.uvsc.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box

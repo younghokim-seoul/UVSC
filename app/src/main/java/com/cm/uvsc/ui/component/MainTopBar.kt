@@ -1,4 +1,4 @@
-package com.cm.uvsc.component
+package com.cm.uvsc.ui.component
 
 import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
@@ -54,11 +54,9 @@ internal fun MainTopBar(
                 .border(
                     width = 1.dp,
                     color = MaterialTheme.colorScheme.outline,
-                    shape = RoundedCornerShape(size = 28.dp),
                 )
                 .background(
                     color = MaterialTheme.colorScheme.surface,
-                    shape = RoundedCornerShape(28.dp),
                 )
                 .padding(horizontal = 28.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
