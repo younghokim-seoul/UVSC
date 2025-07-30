@@ -62,7 +62,7 @@ internal fun MainTopBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             tabs.forEach { tab ->
-                MainBottomBarItem(
+                MainTopBarItem(
                     tab = tab,
                     selected = tab == currentTab,
                     onClick = { onTabSelected(tab) },
@@ -73,7 +73,7 @@ internal fun MainTopBar(
 }
 
 @Composable
-private fun RowScope.MainBottomBarItem(
+private fun RowScope.MainTopBarItem(
     tab: MainTab,
     selected: Boolean,
     onClick: () -> Unit,
@@ -100,9 +100,8 @@ private fun RowScope.MainBottomBarItem(
 }
 
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_NO)
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-private fun MainBottomBarPreview() {
+private fun MainTopBarPreview() {
     UVSCTheme {
         MainTopBar(
             visible = true,

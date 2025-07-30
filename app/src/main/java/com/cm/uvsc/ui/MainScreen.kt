@@ -1,33 +1,19 @@
 package com.cm.uvsc.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.cm.uvsc.MainNavigator
 import com.cm.uvsc.MainTab
 import com.cm.uvsc.rememberMainNavigator
 import com.cm.uvsc.ui.component.MainNavHost
 import com.cm.uvsc.ui.component.MainTopBar
-import com.cm.uvsc.ui.theme.USCVColor
 import kotlinx.collections.immutable.toPersistentList
 
 @Composable
@@ -36,9 +22,6 @@ internal fun MainScreen(
     navigator: MainNavigator = rememberMainNavigator(),
 ) {
     val snackBarHostState = remember { SnackbarHostState() }
-
-    val coroutineScope = rememberCoroutineScope()
-    val localContextResource = LocalContext.current.resources
 
     MainScreenContent(
         onTabSelected = onTabSelected,
@@ -59,8 +42,7 @@ private fun MainScreenContent(
         snackbarHost = { SnackbarHost(snackBarHostState) },
         topBar = {
             MainTopBar(
-                modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp, top = 28.dp, bottom = 28.dp),
+                modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 28.dp, bottom = 28.dp),
                 visible = navigator.shouldShowBottomBar(),
                 tabs = MainTab.entries.toPersistentList(),
                 currentTab = navigator.currentTab,
