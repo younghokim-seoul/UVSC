@@ -13,6 +13,7 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(private val navigator: Navigator) : ViewModel() {
 
+
     fun navigateHome() = viewModelScope.launch {
         navigator.navigate(
             route = RouteHome,

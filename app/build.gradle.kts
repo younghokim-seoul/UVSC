@@ -75,6 +75,7 @@ dependencies {
 
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
+    implementation(libs.coroutines.rx3)
 
     implementation(libs.ted.permission)
     implementation(libs.rxandroidble)
