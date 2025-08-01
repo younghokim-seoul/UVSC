@@ -48,6 +48,9 @@ tedPermission = "3.4.2"
 # https://github.com/Polidea/RxAndroidBle
 rxandroidble = "1.19.1"
 
+# https://github.com/JakeWharton/timber
+timber = "5.0.1"
+
 
 
 [libraries]
@@ -92,6 +95,8 @@ hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.r
 ted-permission = { group = "io.github.ParkSangGwon", name = "tedpermission-coroutine", version.ref = "tedPermission" }
 
 rxandroidble = { group = "com.polidea.rxandroidble3", name = "rxandroidble", version.ref = "rxandroidble" }
+
+timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

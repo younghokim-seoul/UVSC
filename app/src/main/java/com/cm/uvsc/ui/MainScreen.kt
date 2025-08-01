@@ -42,7 +42,7 @@ private fun MainScreenContent(
         snackbarHost = { SnackbarHost(snackBarHostState) },
         topBar = {
             MainTopBar(
-                modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 28.dp, bottom = 28.dp),
+                modifier = Modifier.padding(top = 28.dp),
                 visible = navigator.shouldShowBottomBar(),
                 tabs = MainTab.entries.toPersistentList(),
                 currentTab = navigator.currentTab,

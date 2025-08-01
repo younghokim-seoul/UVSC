@@ -2,8 +2,6 @@
 
 package com.cm.uvsc.ble
 
-import android.os.ParcelUuid
-
 import com.polidea.rxandroidble3.RxBleClient
 import com.polidea.rxandroidble3.RxBleConnection
 import com.polidea.rxandroidble3.RxBleDevice
@@ -24,25 +22,23 @@ class BleClient @Inject constructor(
 
 
     companion object {
-        private const val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914"
-        const val CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+        private const val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+        const val CHARACTERISTIC_UUID = "BEB5483E-36E1-4688-B7F5-EA07361B26A8"
 
     }
 
-    val scanFilter: ScanFilter =
-        ScanFilter.Builder().setServiceUuid(ParcelUuid(UUID.fromString(SERVICE_UUID))).build()
+    private val scanFilter: ScanFilter =
+        ScanFilter.Builder().setDeviceName("UV-FSS-2023").build()
 
-    val settings: ScanSettings = ScanSettings.Builder().build()
+    private val settings: ScanSettings =
+        ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED).build()
 
 
-    fun startScan() =
-        rxBleClient.scanBleDevices(settings, scanFilter).map { it.bleDevice }
-            .distinct { it.macAddress }.asFlow()
-
+    fun startScan() = rxBleClient.scanBleDevices(settings, scanFilter).map { it.bleDevice }.distinct { it.macAddress }.asFlow()
 
     fun connectionStateFlow(device: RxBleDevice) = device.observeConnectionStateChanges().asFlow()
 
-    fun connect(device: RxBleDevice) = device.establishConnection(false).asFlow()
+    fun connect(device: RxBleDevice) = device.establishConnection(true).asFlow()
 
     fun getNotificationFlow(
         connection: RxBleConnection,

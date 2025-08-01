@@ -26,12 +26,15 @@ import com.gun0912.tedpermission.coroutine.TedPermission
 
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import kotlin.getValue
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
+
+    private val bleViewModel : BleViewModel by viewModels()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,6 +85,8 @@ class MainActivity : ComponentActivity() {
 
             if (permissionResult.isGranted) {
                 // 권한 허용된경우 장치 오토 스캔 시작..
+                Timber.i("start scan")
+                bleViewModel.startScan()
             } else {
                 finish()
             }

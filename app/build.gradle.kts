@@ -50,6 +50,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -79,6 +80,8 @@ dependencies {
 
     implementation(libs.ted.permission)
     implementation(libs.rxandroidble)
+
+    implementation(libs.timber)
 
 
 
