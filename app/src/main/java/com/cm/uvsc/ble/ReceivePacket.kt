@@ -1,26 +1,26 @@
 package com.cm.uvsc.ble
 
-sealed interface BasePacket {
+sealed interface ReceivePacket {
     val key: String
 }
 
 /**
  * "ACS:value" 형태의 패킷
  */
-data class AcsPacket(val value: String) : BasePacket {
+data class AcsPacket(val value: String) : ReceivePacket {
     override val key: String = "ACS"
 }
 /**
  * "ACHT:value" 형태의 패킷
  */
-data class AchtPacket(val value: String) : BasePacket {
+data class AchtPacket(val value: String) : ReceivePacket {
     override val key: String = "ACHT"
 }
 
 /**
  * "ACHS:value" 형태의 패킷
  */
-data class AchsPacket(val value: String) : BasePacket {
+data class AchsPacket(val value: String) : ReceivePacket {
     override val key: String = "ACHS"
 }
 
@@ -31,7 +31,7 @@ data class AchPacket(
     val index: Int,
     val date: String,
     val time: String
-) : BasePacket {
+) : ReceivePacket {
     override val key: String = "ACH"
 }
 
@@ -41,4 +41,6 @@ data class AchPacket(
 data class RawPacket(
     override val key: String,
     val rawData: String
-) : BasePacket
+) : ReceivePacket
+
+

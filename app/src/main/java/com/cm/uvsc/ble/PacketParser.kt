@@ -6,7 +6,7 @@ object PacketParser {
      * 장치를 통해 들어오는 문자열 데이터
      * 예: Key:Value
      */
-    fun parse(rawData: String): BasePacket {
+    fun parse(rawData: String): ReceivePacket {
         val parts = rawData.split(":", limit = 2)
         val key = parts.getOrNull(0) ?: ""
         val value = parts.getOrNull(1) ?: ""
@@ -24,7 +24,7 @@ object PacketParser {
      * "ACH" 이력 데이터의 value 부분을 파싱
      * 예: "2,1970-01-01,13349"
      */
-    private fun parseAchPacket(value: String): BasePacket {
+    private fun parseAchPacket(value: String): ReceivePacket {
         return try {
             val parts = value.split(",")
             AchPacket(
