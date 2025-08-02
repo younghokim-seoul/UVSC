@@ -70,7 +70,7 @@ class BleRepository @Inject constructor(
     private val notifications: SharedFlow<ReceivePacket> = connection
         .flatMapLatest { conn ->
             bleClient.getNotificationFlow(conn, UUID.fromString(BleClient.CHARACTERISTIC_UUID))
-//                .filter { rawBytes -> rawBytes.isPureAsciiText() }
+                .filter { rawBytes -> rawBytes.isPureAsciiText() }
                 .map { newData -> PacketParser.parse(String(newData, Charsets.US_ASCII)) }
                 .catch { e -> Timber.e(e, "Notification error") }
         }
