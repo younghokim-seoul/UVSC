@@ -3,6 +3,8 @@
 package com.cm.uvsc.ble
 
 import com.cm.uvsc.di.ApplicationScope
+import com.cm.uvsc.util.asDateString
+import com.cm.uvsc.util.now
 import com.polidea.rxandroidble3.RxBleConnection
 import com.polidea.rxandroidble3.RxBleDevice
 import kotlinx.coroutines.CoroutineScope
@@ -17,8 +19,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -27,11 +29,12 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.rx3.await
+import kotlinx.coroutines.withTimeout
 import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
-
+import kotlinx.datetime.*
 
 @Singleton
 class BleRepository @Inject constructor(
@@ -47,8 +50,8 @@ class BleRepository @Inject constructor(
     /**
      * 디바이스에서 받는 패킷을 Map형태로 적재.. 각 Compose 화면 마다 필요한 데이터 Filter로 가져다쓰면될듯
      */
-    private val _latestPacketsMap = MutableStateFlow<Map<String, BasePacket>>(emptyMap())
-    val latestPacketsMap: StateFlow<Map<String, BasePacket>> = _latestPacketsMap
+    private val _latestPacketsMap = MutableStateFlow<Map<String, ReceivePacket>>(emptyMap())
+    val latestPacketsMap: StateFlow<Map<String, ReceivePacket>> = _latestPacketsMap
 
 
     private val connection: SharedFlow<RxBleConnection> = _targetDevice
@@ -64,12 +67,12 @@ class BleRepository @Inject constructor(
         }
         .stateIn(externalScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private val notifications: SharedFlow<BasePacket> = connection
+    private val notifications: SharedFlow<ReceivePacket> = connection
         .flatMapLatest { conn ->
             bleClient.getNotificationFlow(conn, UUID.fromString(BleClient.CHARACTERISTIC_UUID))
                 .filter { rawBytes -> rawBytes.isPureAsciiText() }
                 .map { newData -> PacketParser.parse(String(newData, Charsets.US_ASCII)) }
-                .catch { e -> Timber.e("Notification error", e) }
+                .catch { e -> Timber.e(e, "Notification error") }
         }
         .shareIn(externalScope, SharingStarted.WhileSubscribed(5000))
 
@@ -77,9 +80,11 @@ class BleRepository @Inject constructor(
         connectionState.onEach { state ->
             Timber.i("RxBleConnectionState $state")
             when (state) {
-                RxBleConnection.RxBleConnectionState.CONNECTED -> startPolling()
+                RxBleConnection.RxBleConnectionState.CONNECTED -> {
+                    sendToRetry(SetUVTime(nowDate = LocalDateTime.now().asDateString()))
+                }
+
                 RxBleConnection.RxBleConnectionState.DISCONNECTED -> {
-                    stopPolling()
                     resetPacket()
                     disconnectTrigger()
                 }
@@ -100,6 +105,50 @@ class BleRepository @Inject constructor(
     }
 
 
+    /**
+     * 응답이 true일 경우에 로직 처리해주세요.
+     */
+    suspend fun sendToRetry(
+        data: SendPacket,
+        retryCount: Int = 5,
+        timeoutMillis: Long = 500
+    ): Boolean {
+        if (connectionState.value != RxBleConnection.RxBleConnectionState.CONNECTED) {
+            Timber.w("Cannot send data: Not connected.")
+            return false
+        }
+
+        repeat(retryCount) { attempt ->
+            Timber.d("Sending data (Attempt ${attempt + 1}/$retryCount)...")
+
+            val sendSuccess = sendData(data.toByteArray())
+            if (!sendSuccess) {
+                delay(timeoutMillis)
+                return@repeat
+            }
+
+            runCatching {
+                withTimeout(timeoutMillis) {
+                    latestPacketsMap
+                        .filter { map ->
+                            val receivedPacket = map[data.key]
+                            receivedPacket?.valueAsString == data.value
+                        }
+                        .first()
+                }
+                Timber.d("ACK received for key '${data}'. Send successful.")
+                return true
+            }.onFailure {
+                Timber.e("ACK timeout for key '${data}'. Retrying...")
+            }
+
+        }
+
+        Timber.e("Send failed after $retryCount retryCount.")
+        return false
+    }
+
+
     fun startScan() {
         scanJob?.cancel()
         scanJob = bleClient.startScan()
@@ -107,7 +156,7 @@ class BleRepository @Inject constructor(
                 connect(device)
                 stopScan()
             }
-            .launchIn(externalScope) // 앱 스코프에서 실행
+            .launchIn(externalScope)
     }
 
     fun stopScan() {
@@ -125,36 +174,14 @@ class BleRepository @Inject constructor(
         _targetDevice.tryEmit(null)
     }
 
-
-    private fun startPolling(intervalMillis: Long = 1000) {
-        pollingJob?.cancel()
-        Timber.d("Starting polling...")
-
-        pollingJob = connection
-            .flatMapLatest { conn ->
-                flow {
-                    while (true) {
-                        emit(conn); delay(intervalMillis)
-                    }
-                }
-            }
-            .map { conn ->
-                conn.readCharacteristic(UUID.fromString(BleClient.CHARACTERISTIC_UUID)).await()
-            }
-            .map { bytes ->
-                String(bytes, Charsets.US_ASCII)
-            }
-            .onEach { parsedData ->
-                Timber.d("Polling Read: $parsedData")
-            }
-            .catch { e -> Timber.e(e, "Polling stream failed") }
-            .launchIn(externalScope)
-    }
-
-    private fun stopPolling() {
-        pollingJob?.cancel()
-        pollingJob = null
-        Timber.d("Polling stopped.")
+    private suspend fun sendData(data: ByteArray): Boolean {
+        return try {
+            bleClient.send(connection.first(),data)
+            true
+        } catch (e: Exception) {
+            Timber.e(e, "Single send failed")
+            false
+        }
     }
 
     private fun disconnectTrigger() {

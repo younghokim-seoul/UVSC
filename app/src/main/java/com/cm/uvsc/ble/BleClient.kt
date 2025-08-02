@@ -11,6 +11,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.rx3.asFlow
+import kotlinx.coroutines.rx3.await
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -46,6 +47,13 @@ class BleClient @Inject constructor(
     fun connectionStateFlow(device: RxBleDevice) = device.observeConnectionStateChanges().asFlow()
 
     fun connect(device: RxBleDevice) = device.establishConnection(true).asFlow()
+
+    suspend fun send(connection: RxBleConnection, sendByteData: ByteArray) {
+        connection.writeCharacteristic(
+            UUID.fromString(CHARACTERISTIC_UUID),
+            sendByteData
+        ).await()
+    }
 
     fun getNotificationFlow(
         connection: RxBleConnection,
