@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.rx3.await
 import timber.log.Timber
 import java.util.UUID
@@ -41,6 +43,10 @@ class BleRepository @Inject constructor(
     private var scanJob: Job? = null
     private var pollingJob: Job? = null
 
+
+    /**
+     * 디바이스에서 받는 패킷을 Map형태로 적재.. 각 Compose 화면 마다 필요한 데이터 Filter로 가져다쓰면될듯
+     */
     private val _latestPacketsMap = MutableStateFlow<Map<String, BasePacket>>(emptyMap())
     val latestPacketsMap: StateFlow<Map<String, BasePacket>> = _latestPacketsMap
 
@@ -58,9 +64,11 @@ class BleRepository @Inject constructor(
         }
         .stateIn(externalScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private val notifications: SharedFlow<ByteArray> = connection
+    private val notifications: SharedFlow<BasePacket> = connection
         .flatMapLatest { conn ->
             bleClient.getNotificationFlow(conn, UUID.fromString(BleClient.CHARACTERISTIC_UUID))
+                .filter { rawBytes -> rawBytes.isPureAsciiText() }
+                .map { newData -> PacketParser.parse(String(newData, Charsets.US_ASCII)) }
                 .catch { e -> Timber.e("Notification error", e) }
         }
         .shareIn(externalScope, SharingStarted.WhileSubscribed(5000))
@@ -72,13 +80,23 @@ class BleRepository @Inject constructor(
                 RxBleConnection.RxBleConnectionState.CONNECTED -> startPolling()
                 RxBleConnection.RxBleConnectionState.DISCONNECTED -> {
                     stopPolling()
+                    resetPacket()
                     disconnectTrigger()
                 }
+
                 else -> {}
             }
         }.launchIn(externalScope)
 
-        notifications.onEach { }.catch { }.launchIn(externalScope)
+        notifications
+            .onEach { newPacket ->
+                _latestPacketsMap.update { currentMap ->
+                    currentMap + (newPacket.key to newPacket)
+                }
+                Timber.d("Packet received & map updated: $newPacket")
+            }.catch { e ->
+                Timber.e(e, "Notification processing error")
+            }.launchIn(externalScope)
     }
 
 
@@ -143,6 +161,9 @@ class BleRepository @Inject constructor(
         _targetDevice.tryEmit(null)
     }
 
+    private fun resetPacket() {
+        _latestPacketsMap.value = emptyMap()
+    }
 
 
 }
