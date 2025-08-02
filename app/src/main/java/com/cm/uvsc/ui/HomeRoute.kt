@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -84,7 +85,12 @@ fun StatusCard(statusText: String) {
                 .padding(16.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = statusText, fontSize = 20.sp, color = USCVColor.Black)
+            Text(
+                text = statusText,
+                fontSize = 20.sp,
+                color = USCVColor.Black,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
@@ -145,7 +151,7 @@ fun ControlButton(buttonText: String, onClick: () -> Unit) {
         shape = RoundedCornerShape(8.dp),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
     ) {
-        Text(text = buttonText, color = Color.White, fontSize = 18.sp)
+        Text(text = buttonText, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
     }
 }
 
