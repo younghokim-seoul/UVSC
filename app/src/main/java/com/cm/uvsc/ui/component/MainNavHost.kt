@@ -6,10 +6,13 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.cm.uvsc.MainNavigator
+import com.cm.uvsc.MainViewModel
 import com.cm.uvsc.route.RouteHome
 import com.cm.uvsc.route.RouteReceiveHistory
 import com.cm.uvsc.route.RouteUvscHistory
@@ -22,6 +25,7 @@ internal fun MainNavHost(
     navigator: MainNavigator,
     padding: PaddingValues,
     modifier: Modifier = Modifier,
+    viewModel: MainViewModel
 ) {
     Box(
         modifier = modifier
@@ -33,8 +37,12 @@ internal fun MainNavHost(
             startDestination = navigator.startDestination,
         ) {
             composable<RouteHome> {
+                val uiState by viewModel.homeUiState.collectAsState()
                 HomeRoute(
                     padding = padding,
+                    uiState = uiState,
+                    onStartClick = viewModel::startUvsc,
+                    onStopClick = viewModel::stopUvsc
                 )
             }
             composable<RouteUvscHistory> {

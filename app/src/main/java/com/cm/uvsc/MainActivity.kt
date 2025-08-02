@@ -38,10 +38,11 @@ class MainActivity : ComponentActivity() {
                     onTabSelected = { tab ->
                         when (tab.route) {
                             is RouteHome -> viewModel.navigateHome()
-                            is RouteUvscHistory -> viewModel.navigatUvscHistory()
+                            is RouteUvscHistory -> viewModel.navigateUvscHistory()
                             is RouteReceiveHistory -> viewModel.navigateRouteReceiveHistory()
                         }
                     },
+                    viewModel = viewModel
                 )
             }
         }
