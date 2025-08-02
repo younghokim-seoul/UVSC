@@ -46,8 +46,10 @@ internal fun MainNavHost(
                 )
             }
             composable<RouteUvscHistory> {
+                val historyList by viewModel.uvscHistoryList.collectAsState()
                 USCVRoute(
                     padding = padding,
+                    historyList = historyList
                 )
             }
             composable<RouteReceiveHistory> {
