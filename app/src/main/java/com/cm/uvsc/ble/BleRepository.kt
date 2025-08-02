@@ -131,8 +131,8 @@ class BleRepository @Inject constructor(
                 withTimeout(timeoutMillis) {
                     latestPacketsMap
                         .filter { map ->
-                            val receivePacket = map[data.key]
-                            receivePacket?.key == data.key
+                            val receivedPacket = map[data.key]
+                            receivedPacket?.valueAsString == data.value
                         }
                         .first()
                 }
