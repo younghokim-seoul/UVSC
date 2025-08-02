@@ -10,7 +10,6 @@ data object RouteHome : Route
 @Serializable
 data object RouteUvscHistory : Route
 
-
 //수신 이력 탭
 @Serializable
 data object RouteReceiveHistory : Route

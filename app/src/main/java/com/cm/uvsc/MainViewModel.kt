@@ -2,16 +2,26 @@ package com.cm.uvsc
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cm.uvsc.ble.BleRepository
 import com.cm.uvsc.route.Navigator
 import com.cm.uvsc.route.RouteHome
 import com.cm.uvsc.route.RouteReceiveHistory
 import com.cm.uvsc.route.RouteUvscHistory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
-class MainViewModel @Inject constructor(private val navigator: Navigator) : ViewModel() {
+class MainViewModel @Inject constructor(private val navigator: Navigator,private val bleRepository: BleRepository) : ViewModel() {
+
+    init {
+        Timber.i("bleRepository => $bleRepository")
+    }
+
+    fun startScan(){
+        bleRepository.startScan()
+    }
 
 
     fun navigateHome() = viewModelScope.launch {

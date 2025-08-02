@@ -5,15 +5,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.cm.uvsc.route.LaunchedRouter
@@ -23,19 +15,14 @@ import com.cm.uvsc.route.RouteUvscHistory
 import com.cm.uvsc.ui.MainScreen
 import com.cm.uvsc.ui.theme.UVSCTheme
 import com.gun0912.tedpermission.coroutine.TedPermission
-
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import kotlin.getValue
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
-
-    private val bleViewModel : BleViewModel by viewModels()
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,7 +73,7 @@ class MainActivity : ComponentActivity() {
             if (permissionResult.isGranted) {
                 // 권한 허용된경우 장치 오토 스캔 시작..
                 Timber.i("start scan")
-                bleViewModel.startScan()
+                viewModel.startScan()
             } else {
                 finish()
             }

@@ -15,6 +15,7 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
+
 @Singleton
 class BleClient @Inject constructor(
     private val rxBleClient: RxBleClient
@@ -24,17 +25,23 @@ class BleClient @Inject constructor(
     companion object {
         private const val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
         const val CHARACTERISTIC_UUID = "BEB5483E-36E1-4688-B7F5-EA07361B26A8"
+        const val DEVICE_NAME = "UV-FSS-2023"
 
     }
 
-    private val scanFilter: ScanFilter =
-        ScanFilter.Builder().setDeviceName("UV-FSS-2023").build()
+    private val scanFilter: ScanFilter = ScanFilter.Builder().setDeviceName(DEVICE_NAME).build()
 
     private val settings: ScanSettings =
         ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED).build()
 
 
-    fun startScan() = rxBleClient.scanBleDevices(settings, scanFilter).map { it.bleDevice }.distinct { it.macAddress }.asFlow()
+    fun startScan(): Flow<RxBleDevice> {
+        return rxBleClient.scanBleDevices(settings, scanFilter)
+            .map { it.bleDevice }
+            .distinctUntilChanged { old, new -> old.macAddress == new.macAddress }
+            .asFlow()
+    }
+
 
     fun connectionStateFlow(device: RxBleDevice) = device.observeConnectionStateChanges().asFlow()
 
@@ -50,5 +57,6 @@ class BleClient @Inject constructor(
                 notificationObservable.asFlow()
             }
     }
+
 
 }
