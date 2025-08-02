@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.cm.uvsc.ui.history.UvscHistory
+import com.cm.uvsc.ui.history.UvscHistoryColumn
 import com.cm.uvsc.ui.theme.USCVColor
 
 @Composable
@@ -50,7 +51,6 @@ fun USCVRoute(
 
 @Composable
 fun HistoryTableHeader() {
-    val headers = listOf("UVSC 일자", "UVSC 시간", "UVSC 결과", "비고")
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -59,9 +59,9 @@ fun HistoryTableHeader() {
             .border(1.dp, Color.White),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        headers.forEachIndexed { index, title ->
-            TableCell(text = title, color = Color.White, fontWeight = FontWeight.Bold)
-            if (index < headers.lastIndex) VDivider()
+        UvscHistoryColumn.ordered.forEachIndexed { index, column ->
+            TableCell(text = column.title, color = Color.White, fontWeight = FontWeight.Bold)
+            if (index < UvscHistoryColumn.ordered.lastIndex) VDivider()
         }
     }
 }
@@ -69,8 +69,6 @@ fun HistoryTableHeader() {
 @Composable
 fun HistoryTableRow(item: UvscHistory, isOdd: Boolean) {
     val backgroundColor = if (isOdd) USCVColor.Blue02A30 else USCVColor.PaleGray
-    val cells = listOf(item.date, item.time, item.result, item.note)
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -79,9 +77,9 @@ fun HistoryTableRow(item: UvscHistory, isOdd: Boolean) {
             .height(IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        cells.forEachIndexed { index, value ->
-            TableCell(text = value)
-            if (index < cells.lastIndex) VDivider()
+        UvscHistoryColumn.ordered.forEachIndexed { index, column ->
+            TableCell(text = column.getValue(item))
+            if (index < UvscHistoryColumn.ordered.lastIndex) VDivider()
         }
     }
 }

@@ -124,7 +124,7 @@ fun InfoPanel(info: UvscInfo?, batteryIcon: Int) {
 
 @Composable
 fun InfoRow(label: String, value: String) {
-    Row {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Text(text = "$label: ", fontSize = 16.sp, color = USCVColor.Black)
         Text(text = value, fontSize = 16.sp, color = USCVColor.Black)
     }
