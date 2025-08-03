@@ -42,9 +42,9 @@ class BleRepository @Inject constructor(
 ) {
     private val _targetDevice = MutableSharedFlow<RxBleDevice?>(replay = 1)
 
-    private var scanJob: Job? = null
+    private var _scanJob: Job? = null
 
-    private var lastSuccessfullyConnectedDevice: RxBleDevice? = null
+    private var _lastSuccessfullyConnectedDevice: RxBleDevice? = null
 
     private val _latestPacketsMap = MutableStateFlow<Map<String, ReceivePacket>>(emptyMap())
     val latestPacketsMap: StateFlow<Map<String, ReceivePacket>> = _latestPacketsMap
@@ -53,25 +53,25 @@ class BleRepository @Inject constructor(
     val scannedDevices: StateFlow<Set<RxBleDevice>> = _scannedDevicesSet
 
 
-    private val connection: SharedFlow<Pair<RxBleDevice, RxBleConnection>> = _targetDevice
+    private val _connection: SharedFlow<Pair<RxBleDevice, RxBleConnection>> = _targetDevice
         .flatMapLatest { device ->
             device?.let { bleClient.connect(it).map { connection -> device to connection } }
                 ?: emptyFlow()
         }
         .onEach { (device, _) ->
-            lastSuccessfullyConnectedDevice = device
+            _lastSuccessfullyConnectedDevice = device
         }
         .catch { e -> Timber.e(e, "Connection stream failed") }
         .shareIn(externalScope, SharingStarted.WhileSubscribed(5000), 1)
 
-    private val connectionState: StateFlow<RxBleConnection.RxBleConnectionState?> = _targetDevice
+    private val _connectionState: StateFlow<RxBleConnection.RxBleConnectionState?> = _targetDevice
         .flatMapLatest { device ->
             device?.let { bleClient.connectionStateFlow(it) } ?: flowOf(null)
         }
         .stateIn(externalScope, SharingStarted.WhileSubscribed(5000), null)
 
     init {
-        connectionState.onEach { state ->
+        _connectionState.onEach { state ->
             Timber.i("RxBleConnectionState $state")
             when (state) {
                 RxBleConnection.RxBleConnectionState.CONNECTED -> {
@@ -80,7 +80,7 @@ class BleRepository @Inject constructor(
 
                 RxBleConnection.RxBleConnectionState.DISCONNECTED -> {
                     resetPacket()
-                    lastSuccessfullyConnectedDevice?.let { deviceToReconnect ->
+                    _lastSuccessfullyConnectedDevice?.let { deviceToReconnect ->
                         Timber.d("attempting auto-reconnect...")
                         connect(deviceToReconnect)
                     }
@@ -91,7 +91,7 @@ class BleRepository @Inject constructor(
             }
         }.launchIn(externalScope)
 
-        connection
+        _connection
             .flatMapLatest { (_, connection) ->
                 bleClient.getNotificationFlow(
                     connection,
@@ -119,7 +119,7 @@ class BleRepository @Inject constructor(
         retryCount: Int = 5,
         timeoutMillis: Long = 500
     ): Boolean {
-        if (connectionState.value != RxBleConnection.RxBleConnectionState.CONNECTED) {
+        if (_connectionState.value != RxBleConnection.RxBleConnectionState.CONNECTED) {
             Timber.w("Cannot send data: Not connected.")
             return false
         }
@@ -160,8 +160,8 @@ class BleRepository @Inject constructor(
 
     fun startScan() {
         _scannedDevicesSet.value = emptySet()
-        scanJob?.cancel()
-        scanJob = bleClient.startScan()
+        _scanJob?.cancel()
+        _scanJob = bleClient.startScan()
             .onEach { device ->
                 _scannedDevicesSet.update { currentSet ->
                     currentSet + device
@@ -171,8 +171,8 @@ class BleRepository @Inject constructor(
     }
 
     fun stopScan() {
-        scanJob?.cancel()
-        scanJob = null
+        _scanJob?.cancel()
+        _scanJob = null
     }
 
     fun connect(device: RxBleDevice) {
@@ -182,22 +182,18 @@ class BleRepository @Inject constructor(
 
     fun disconnect() {
         Timber.d("Disconnecting...")
-        lastSuccessfullyConnectedDevice = null
+        _lastSuccessfullyConnectedDevice = null
         _targetDevice.tryEmit(null)
     }
 
     private suspend fun sendData(data: ByteArray): Boolean {
         return try {
-            bleClient.send(connection.first().second, data)
+            bleClient.send(_connection.first().second, data)
             true
         } catch (e: Exception) {
             Timber.e(e, "Single send failed")
             false
         }
-    }
-
-    private fun disconnectTrigger() {
-        _targetDevice.tryEmit(null)
     }
 
     private fun resetPacket() {
