@@ -95,9 +95,9 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun setUvscState(startUvsc: Boolean) {
+    fun toggleCharging(isOff: Boolean) {
         viewModelScope.launch {
-            retryUntilReceive(packet = SetChargeMode(isOff = startUvsc))
+            retryUntilReceive(packet = SetChargeMode(isOff = isOff))
         }
     }
 

@@ -43,8 +43,8 @@ internal fun MainNavHost(
                     padding = padding,
                     uiState = uiState,
                     onClickControl = {
-                        val start = uiState is HomeUiState.Charging
-                        viewModel.setUvscState(startUvsc = start)
+                        val isCharging = uiState is HomeUiState.Charging
+                        viewModel.toggleCharging(isOff = !isCharging)
                     }
                 )
             }
