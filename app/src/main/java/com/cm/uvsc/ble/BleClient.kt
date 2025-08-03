@@ -26,11 +26,11 @@ class BleClient @Inject constructor(
     companion object {
         private const val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
         const val CHARACTERISTIC_UUID = "BEB5483E-36E1-4688-B7F5-EA07361B26A8"
-        const val DEVICE_NAME = "UV-FSS-2023"
+        const val DEVICE_NAME = "UV"
 
     }
 
-    private val scanFilter: ScanFilter = ScanFilter.Builder().setDeviceName(DEVICE_NAME).build()
+    private val scanFilter: ScanFilter = ScanFilter.Builder().build()
 
     private val settings: ScanSettings =
         ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED).build()
@@ -39,6 +39,9 @@ class BleClient @Inject constructor(
     fun startScan(): Flow<RxBleDevice> {
         return rxBleClient.scanBleDevices(settings, scanFilter)
             .map { it.bleDevice }
+            .filter {
+                it.name?.contains(DEVICE_NAME, ignoreCase = true) == true
+            }
             .distinctUntilChanged { old, new -> old.macAddress == new.macAddress }
             .asFlow()
     }
@@ -46,7 +49,7 @@ class BleClient @Inject constructor(
 
     fun connectionStateFlow(device: RxBleDevice) = device.observeConnectionStateChanges().asFlow()
 
-    fun connect(device: RxBleDevice) = device.establishConnection(true).asFlow()
+    fun connect(device: RxBleDevice) = device.establishConnection(false).asFlow()
 
     suspend fun send(connection: RxBleConnection, sendByteData: ByteArray) {
         connection.writeCharacteristic(

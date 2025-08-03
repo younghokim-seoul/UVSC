@@ -43,19 +43,23 @@ class BleRepository @Inject constructor(
     private val _targetDevice = MutableSharedFlow<RxBleDevice?>(replay = 1)
 
     private var scanJob: Job? = null
-    private var pollingJob: Job? = null
 
+    private var lastSuccessfullyConnectedDevice: RxBleDevice? = null
 
-    /**
-     * 디바이스에서 받는 패킷을 Map형태로 적재.. 각 Compose 화면 마다 필요한 데이터 Filter로 가져다쓰면될듯
-     */
     private val _latestPacketsMap = MutableStateFlow<Map<String, ReceivePacket>>(emptyMap())
     val latestPacketsMap: StateFlow<Map<String, ReceivePacket>> = _latestPacketsMap
 
+    private val _scannedDevicesSet = MutableStateFlow<Set<RxBleDevice>>(emptySet())
+    val scannedDevices: StateFlow<Set<RxBleDevice>> = _scannedDevicesSet
 
-    private val connection: SharedFlow<RxBleConnection> = _targetDevice
+
+    private val connection: SharedFlow<Pair<RxBleDevice, RxBleConnection>> = _targetDevice
         .flatMapLatest { device ->
-            device?.let { bleClient.connect(it) } ?: emptyFlow()
+            device?.let { bleClient.connect(it).map { connection -> device to connection } }
+                ?: emptyFlow()
+        }
+        .onEach { (device, _) ->
+            lastSuccessfullyConnectedDevice = device
         }
         .catch { e -> Timber.e(e, "Connection stream failed") }
         .shareIn(externalScope, SharingStarted.WhileSubscribed(5000), 1)
@@ -65,15 +69,6 @@ class BleRepository @Inject constructor(
             device?.let { bleClient.connectionStateFlow(it) } ?: flowOf(null)
         }
         .stateIn(externalScope, SharingStarted.WhileSubscribed(5000), null)
-
-    private val notifications: SharedFlow<ReceivePacket> = connection
-        .flatMapLatest { conn ->
-            bleClient.getNotificationFlow(conn, UUID.fromString(BleClient.CHARACTERISTIC_UUID))
-                .filter { rawBytes -> rawBytes.isPureAsciiText() }
-                .map { newData -> PacketParser.parse(String(newData, Charsets.US_ASCII)) }
-                .catch { e -> Timber.e(e, "Notification error") }
-        }
-        .shareIn(externalScope, SharingStarted.WhileSubscribed(5000))
 
     init {
         connectionState.onEach { state ->
@@ -85,22 +80,34 @@ class BleRepository @Inject constructor(
 
                 RxBleConnection.RxBleConnectionState.DISCONNECTED -> {
                     resetPacket()
-                    disconnectTrigger()
+                    lastSuccessfullyConnectedDevice?.let { deviceToReconnect ->
+                        Timber.d("attempting auto-reconnect...")
+                        connect(deviceToReconnect)
+                    }
+
                 }
 
                 else -> {}
             }
         }.launchIn(externalScope)
 
-        notifications
+        connection
+            .flatMapLatest { (_, connection) ->
+                bleClient.getNotificationFlow(
+                    connection,
+                    UUID.fromString(BleClient.CHARACTERISTIC_UUID)
+                )
+                    .filter { rawBytes -> rawBytes.isPureAsciiText() }
+                    .map { bytes -> PacketParser.parse(String(bytes, Charsets.US_ASCII)) }
+            }
             .onEach { newPacket ->
                 _latestPacketsMap.update { currentMap ->
                     currentMap + (newPacket.key to newPacket)
                 }
                 Timber.d("Packet received & map updated: $newPacket")
-            }.catch { e ->
-                Timber.e(e, "Notification processing error")
-            }.launchIn(externalScope)
+            }
+            .catch { e -> Timber.e(e, "Notification processing error") }
+            .launchIn(externalScope)
     }
 
 
@@ -152,11 +159,13 @@ class BleRepository @Inject constructor(
 
 
     fun startScan() {
+        _scannedDevicesSet.value = emptySet()
         scanJob?.cancel()
         scanJob = bleClient.startScan()
             .onEach { device ->
-                connect(device)
-                stopScan()
+                _scannedDevicesSet.update { currentSet ->
+                    currentSet + device
+                }
             }
             .launchIn(externalScope)
     }
@@ -173,12 +182,13 @@ class BleRepository @Inject constructor(
 
     fun disconnect() {
         Timber.d("Disconnecting...")
+        lastSuccessfullyConnectedDevice = null
         _targetDevice.tryEmit(null)
     }
 
     private suspend fun sendData(data: ByteArray): Boolean {
         return try {
-            bleClient.send(connection.first(), data)
+            bleClient.send(connection.first().second, data)
             true
         } catch (e: Exception) {
             Timber.e(e, "Single send failed")
