@@ -37,8 +37,7 @@ import com.cm.uvsc.ui.theme.USCVColor
 fun HomeRoute(
     padding: PaddingValues,
     uiState: HomeUiState,
-    onStartClick: () -> Unit,
-    onStopClick: () -> Unit
+    onClickControl: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -51,8 +50,7 @@ fun HomeRoute(
         when (uiState) {
             is HomeUiState.Charging,
             is HomeUiState.UvscInProgress -> {
-                val onClick = if (uiState is HomeUiState.Charging) onStartClick else onStopClick
-                HomeContentView(state = uiState, onClick = onClick)
+                HomeContentView(state = uiState, onClick = onClickControl)
             }
 
             is HomeUiState.NoData -> {
@@ -168,7 +166,6 @@ fun PreviewHomeRoute() {
     HomeRoute(
         padding = PaddingValues(0.dp),
         uiState = inProgress,
-        onStartClick = {},
-        onStopClick = {}
+        onClickControl = {}
     )
 }

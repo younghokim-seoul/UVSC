@@ -19,6 +19,7 @@ import com.cm.uvsc.route.RouteUvscHistory
 import com.cm.uvsc.ui.HomeRoute
 import com.cm.uvsc.ui.ReceiveRoute
 import com.cm.uvsc.ui.USCVRoute
+import com.cm.uvsc.ui.home.HomeUiState
 
 @Composable
 internal fun MainNavHost(
@@ -41,8 +42,10 @@ internal fun MainNavHost(
                 HomeRoute(
                     padding = padding,
                     uiState = uiState,
-                    onStartClick = viewModel::startUvsc,
-                    onStopClick = viewModel::stopUvsc
+                    onClickControl = {
+                        val start = uiState is HomeUiState.Charging
+                        viewModel.setUvscState(startUvsc = start)
+                    }
                 )
             }
             composable<RouteUvscHistory> {
@@ -53,8 +56,11 @@ internal fun MainNavHost(
                 )
             }
             composable<RouteReceiveHistory> {
+                val dataList by viewModel.receiveDataList.collectAsState()
                 ReceiveRoute(
                     padding = padding,
+                    dataList = dataList,
+                    onCheckedChange = viewModel::toggleReceiveDataChecked
                 )
             }
         }
