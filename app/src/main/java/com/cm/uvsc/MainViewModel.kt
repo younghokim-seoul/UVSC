@@ -2,6 +2,7 @@ package com.cm.uvsc
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cm.uvsc.ble.AchPacket
 import com.cm.uvsc.ble.BleRepository
 import com.cm.uvsc.ble.ReceivePacket
 import com.cm.uvsc.ble.SetChargeMode
@@ -15,13 +16,17 @@ import com.cm.uvsc.ui.home.UvscInfo
 import com.cm.uvsc.ui.home.toCharging
 import com.cm.uvsc.ui.home.toUvscInProgress
 import com.cm.uvsc.ui.receive.ReceiveData
+import com.cm.uvsc.util.filterForHistory
+import com.cm.uvsc.util.filterForHome
+import com.cm.uvsc.util.filterForOthers
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.launchIn
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -42,20 +47,19 @@ class MainViewModel @Inject constructor(
 
     init {
         Timber.i("bleRepository => $bleRepository")
-        updateHomeUiState()
+        observeHomePacket()
+        observeHistoryPacket()
     }
 
-    private fun updateHomeUiState() {
-        viewModelScope.launch {
-            bleRepository.latestPacketsMap
-                .filter { it.containsKey("ACS") || it.containsKey("ACHT") || it.containsKey("ACHS") }
-                .collect { map ->
-                    map["ACS"]?.let { updateUiStateFromAcs(it) }
-                    map["ACHT"]?.let { updateUiStateFromAcht(it) }
-                    map["ACHS"]?.let { updateUiStateFromAchs(it) }
-                }
-        }
-    }
+    private fun observeHomePacket() =
+        bleRepository.latestPacketsMap
+            .filterForHome()
+            .onEach { map ->
+                map["ACS"]?.let { updateUiStateFromAcs(it) }
+                map["ACHT"]?.let { updateUiStateFromAcht(it) }
+                map["ACHS"]?.let { updateUiStateFromAchs(it) }
+            }
+            .launchIn(viewModelScope)
 
     private fun updateUiStateFromAcs(packet: ReceivePacket) {
         val value = packet.valueAsString.toIntOrNull() ?: return
@@ -141,9 +145,47 @@ class MainViewModel @Inject constructor(
         bleRepository.startScan()
     }
 
-    fun addReceiveData(data: ReceiveData) {
+    private fun observeHistoryPacket() =
+        bleRepository.latestPacketsMap
+            .filterForHistory()
+            .onEach { map -> map["ACH"]?.let { updateUvscHistoryFromPacket(it) } }
+            .launchIn(viewModelScope)
+
+    private fun updateUvscHistoryFromPacket(packet: ReceivePacket) {
+        val ach = packet as? AchPacket ?: return
+
+        val parts = ach.valueAsString.split(",")
+        val index = parts.getOrNull(0)?.toIntOrNull() ?: 0
+        val date = parts.getOrNull(1) ?: ""
+        val time = parts.getOrNull(2) ?: ""
+        val result = parts.getOrNull(3) ?: ""
+        val note = parts.getOrNull(4) ?: ""
+
+        val entry = UvscHistory(
+            index = index,
+            date = date,
+            time = time,
+            result = result,
+            note = note
+        )
+
+        _uvscHistoryList.update { current ->
+            (current + entry)
+                .sortedByDescending { it.index }
+                .take(10)
+        }
+    }
+
+    private fun observeReceiveData() =
+        bleRepository.latestPacketsMap
+            .filterForOthers()
+            .onEach { map ->
+            }
+            .launchIn(viewModelScope)
+
+    private fun updateReceiveData(packet: ReceivePacket) {
         _receiveDataList.update { currentList ->
-            (currentList + data).sortedByDescending { it.isChecked }
+            (currentList).sortedByDescending { it.isChecked }
         }
     }
 
