@@ -45,7 +45,7 @@ mapsCompose = "6.0.0"
 # https://developer.android.com/jetpack/androidx/releases/work
 work = "2.9.0"
 # https://developer.android.com/google/play-services/location
-playServiceLocation = "21.4.0"
+playServiceLocation = "21.3.0"
 
 
 [libraries]

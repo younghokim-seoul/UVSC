@@ -17,4 +17,5 @@ internal abstract class RouterModel {
     abstract fun provideNavigator(
         navigator: NavigatorImpl
     ): Navigator
+
 }
