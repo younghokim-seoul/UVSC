@@ -10,7 +10,7 @@ plugins {
 }
 
 android {
-    namespace = "com.cm.uvsc"
+    namespace = "com.cm.geofence"
     compileSdk = 36
 
     defaultConfig {
@@ -88,6 +88,10 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.navigation)
     implementation(libs.hilt.navigation.compose)
+
+    implementation(libs.maps.compose)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.play.services.location)
 
 
     androidTestImplementation(libs.androidx.ui.test.junit4)
