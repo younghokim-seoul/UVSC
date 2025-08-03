@@ -111,7 +111,8 @@ class BleRepository @Inject constructor(
     suspend fun sendToRetry(
         data: SendPacket,
         retryCount: Int = 5,
-        timeoutMillis: Long = 500
+        retryDelay: Long = 500,
+        ackTimeout: Long = 60_000L
     ): Boolean {
         if (connectionState.value != RxBleConnection.RxBleConnectionState.CONNECTED) {
             Timber.w("Cannot send data: Not connected.")
@@ -123,12 +124,12 @@ class BleRepository @Inject constructor(
 
             val sendSuccess = sendData(data.toByteArray())
             if (!sendSuccess) {
-                delay(timeoutMillis)
+                delay(retryDelay)
                 return@repeat
             }
 
             runCatching {
-                withTimeout(timeoutMillis) {
+                withTimeout(ackTimeout) {
                     latestPacketsMap
                         .filter { map ->
                             val receivedPacket = map[data.key]
