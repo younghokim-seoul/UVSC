@@ -28,13 +28,12 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.rx3.await
 import kotlinx.coroutines.withTimeout
+import kotlinx.datetime.LocalDateTime
 import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.datetime.*
 
 @Singleton
 class BleRepository @Inject constructor(
@@ -127,7 +126,7 @@ class BleRepository @Inject constructor(
                 return@repeat
             }
 
-            runCatching {
+            val ack = runCatching {
                 withTimeout(timeoutMillis) {
                     latestPacketsMap
                         .filter { map ->
@@ -136,10 +135,13 @@ class BleRepository @Inject constructor(
                         }
                         .first()
                 }
+            }
+
+            if (ack.isSuccess) {
                 Timber.d("ACK received for key '${data}'. Send successful.")
                 return true
-            }.onFailure {
-                Timber.e("ACK timeout for key '${data}'. Retrying...")
+            } else {
+                Timber.w("ACK timeout for key '${data}'. Retrying...")
             }
 
         }
@@ -176,7 +178,7 @@ class BleRepository @Inject constructor(
 
     private suspend fun sendData(data: ByteArray): Boolean {
         return try {
-            bleClient.send(connection.first(),data)
+            bleClient.send(connection.first(), data)
             true
         } catch (e: Exception) {
             Timber.e(e, "Single send failed")
