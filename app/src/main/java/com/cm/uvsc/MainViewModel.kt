@@ -3,6 +3,9 @@ package com.cm.uvsc
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cm.uvsc.ble.AchPacket
+import com.cm.uvsc.ble.AchsPacket
+import com.cm.uvsc.ble.AchtPacket
+import com.cm.uvsc.ble.AcsPacket
 import com.cm.uvsc.ble.BleRepository
 import com.cm.uvsc.ble.ReceivePacket
 import com.cm.uvsc.ble.SetChargeMode
@@ -16,17 +19,20 @@ import com.cm.uvsc.ui.home.UvscInfo
 import com.cm.uvsc.ui.home.toCharging
 import com.cm.uvsc.ui.home.toUvscInProgress
 import com.cm.uvsc.ui.receive.ReceiveData
-import com.cm.uvsc.util.filterForHistory
-import com.cm.uvsc.util.filterForHome
+import com.cm.uvsc.util.achPackets
+import com.cm.uvsc.util.achsPackets
+import com.cm.uvsc.util.achtPackets
+import com.cm.uvsc.util.acsPackets
 import com.cm.uvsc.util.filterForOthers
+import com.cm.uvsc.util.splitTrimmed
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.launchIn
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -60,17 +66,26 @@ class MainViewModel @Inject constructor(
         bleRepository.disconnect()
     }
 
-    private fun observeHomePacket() =
-        bleRepository.latestPacketsMap
-            .filterForHome()
-            .onEach { map ->
-                map["ACS"]?.let { updateUiStateFromAcs(it) }
-                map["ACHT"]?.let { updateUiStateFromAcht(it) }
-                map["ACHS"]?.let { updateUiStateFromAchs(it) }
-            }
+    private fun observeHomePacket() {
+        val homeFlow = bleRepository.latestPacketsMap
+
+        homeFlow
+            .acsPackets()
+            .onEach { updateUiStateFromAcs(it) }
             .launchIn(viewModelScope)
 
-    private fun updateUiStateFromAcs(packet: ReceivePacket) {
+        homeFlow
+            .achtPackets()
+            .onEach { updateUiStateFromAcht(it) }
+            .launchIn(viewModelScope)
+
+        homeFlow
+            .achsPackets()
+            .onEach { updateUiStateFromAchs(it) }
+            .launchIn(viewModelScope)
+    }
+
+    private fun updateUiStateFromAcs(packet: AcsPacket) {
         val value = packet.valueAsString.toIntOrNull() ?: return
         val info = _homeUiState.value as? UvscInfo
 
@@ -97,7 +112,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private fun updateUiStateFromAcht(packet: ReceivePacket) {
+    private fun updateUiStateFromAcht(packet: AchtPacket) {
         val value = packet.valueAsString
         _homeUiState.update {
             when (it) {
@@ -108,9 +123,9 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private fun updateUiStateFromAchs(packet: ReceivePacket) {
+    private fun updateUiStateFromAchs(packet: AchsPacket) {
         val value = packet.valueAsString
-        val (time, result, expected) = value.split(",").let {
+        val (time, result, expected) = value.splitTrimmed().let {
             Triple(
                 it.getOrNull(0) ?: "-",
                 it.getOrNull(1) ?: "-",
@@ -152,14 +167,13 @@ class MainViewModel @Inject constructor(
 
     private fun observeHistoryPacket() =
         bleRepository.latestPacketsMap
-            .filterForHistory()
-            .onEach { map -> map["ACH"]?.let { updateUvscHistoryFromPacket(it) } }
+            .achPackets()
+            .onEach { updateUvscHistoryFromPacket(it) }
             .launchIn(viewModelScope)
 
-    private fun updateUvscHistoryFromPacket(packet: ReceivePacket) {
-        val ach = packet as? AchPacket ?: return
+    private fun updateUvscHistoryFromPacket(packet: AchPacket) {
+        val parts = packet.valueAsString.splitTrimmed()
 
-        val parts = ach.valueAsString.split(",")
         val index = parts.getOrNull(0)?.toIntOrNull() ?: 0
         val date = parts.getOrNull(1) ?: ""
         val time = parts.getOrNull(2) ?: ""
