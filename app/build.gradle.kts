@@ -50,6 +50,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -62,6 +63,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtimeCompose)
     implementation(libs.androidx.lifecycle.viewModelCompose)
 
+    implementation(libs.timber)
+
 
     implementation(platform(libs.androidx.compose.bom))
 
@@ -71,6 +74,9 @@ dependencies {
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+
+    implementation(libs.hilt.work)
+    ksp(libs.hilt.work.compiler)
 
 
     implementation(libs.coroutines.core)

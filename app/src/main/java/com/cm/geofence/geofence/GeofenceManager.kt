@@ -45,6 +45,10 @@ class GeofenceManager @Inject constructor(
         geofenceList[id] = geofence
     }
 
+    fun removeGeofence(id: String) {
+        geofenceList.remove(id)
+    }
+
     @SuppressLint("MissingPermission")
     suspend fun execute() {
         val geofencingRequest = GeofencingRequest.Builder().apply {
@@ -61,6 +65,19 @@ class GeofenceManager @Inject constructor(
             }.addOnFailureListener { exception ->
                 continuation.resumeWithException(exception)
             }
+        }
+    }
+
+    suspend fun remove() {
+        return suspendCoroutine { continuation ->
+            geofencingClient.removeGeofences(geofencePendingIntent)
+                .addOnSuccessListener {
+                    geofenceList.clear()
+                    continuation.resume(Unit)
+                }
+                .addOnFailureListener { exception ->
+                    continuation.resumeWithException(exception)
+                }
         }
     }
 }
