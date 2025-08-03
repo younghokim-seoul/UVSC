@@ -51,6 +51,15 @@ class MainViewModel @Inject constructor(
         observeHistoryPacket()
     }
 
+    fun startScan() {
+        bleRepository.startScan()
+    }
+
+    fun stopScan() {
+        bleRepository.stopScan()
+        bleRepository.disconnect()
+    }
+
     private fun observeHomePacket() =
         bleRepository.latestPacketsMap
             .filterForHome()
@@ -139,10 +148,6 @@ class MainViewModel @Inject constructor(
         if (!success) {
             Timber.w("BLE response not received for $packet after retry")
         }
-    }
-
-    fun startScan() {
-        bleRepository.startScan()
     }
 
     private fun observeHistoryPacket() =
