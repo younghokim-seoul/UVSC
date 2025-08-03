@@ -1,6 +1,8 @@
 package com.cm.uvsc.ui.home
 
 import com.cm.uvsc.R
+import com.cm.uvsc.ui.home.HomeUiState.Charging
+import com.cm.uvsc.ui.home.HomeUiState.UvscInProgress
 
 sealed class HomeUiState {
     open val statusText: String = ""
@@ -30,3 +32,18 @@ sealed class HomeUiState {
         override val controlBtnText = "UVSC 멈춤"
     }
 }
+
+fun UvscInfo.toUvscInProgress(progressTime: Int) = UvscInProgress(
+    progressTime = progressTime,
+    recentUvscTime = this.recentUvscTime,
+    uvscTime = this.uvscTime,
+    uvscResult = this.uvscResult,
+    expectedTime = this.expectedTime
+)
+
+fun UvscInfo.toCharging() = Charging(
+    recentUvscTime = this.recentUvscTime,
+    uvscTime = this.uvscTime,
+    uvscResult = this.uvscResult,
+    expectedTime = this.expectedTime
+)

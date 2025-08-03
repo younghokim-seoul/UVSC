@@ -2,10 +2,8 @@ package com.cm.uvsc
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cm.uvsc.ble.AchsPacket
-import com.cm.uvsc.ble.AchtPacket
-import com.cm.uvsc.ble.AcsPacket
 import com.cm.uvsc.ble.BleRepository
+import com.cm.uvsc.ble.ReceivePacket
 import com.cm.uvsc.ble.SetChargeMode
 import com.cm.uvsc.route.Navigator
 import com.cm.uvsc.route.RouteHome
@@ -13,11 +11,15 @@ import com.cm.uvsc.route.RouteReceiveHistory
 import com.cm.uvsc.route.RouteUvscHistory
 import com.cm.uvsc.ui.history.UvscHistory
 import com.cm.uvsc.ui.home.HomeUiState
+import com.cm.uvsc.ui.home.UvscInfo
+import com.cm.uvsc.ui.home.toCharging
+import com.cm.uvsc.ui.home.toUvscInProgress
 import com.cm.uvsc.ui.receive.ReceiveData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -40,57 +42,84 @@ class MainViewModel @Inject constructor(
 
     init {
         Timber.i("bleRepository => $bleRepository")
-        updateHomeUiStateFromBle()
+        updateHomeUiState()
     }
 
-    private fun updateHomeUiStateFromBle() {
+    private fun updateHomeUiState() {
         viewModelScope.launch {
-            bleRepository.latestPacketsMap.collect { map ->
-                val acs = map["ACS"] as? AcsPacket
-                val acht = map["ACHT"] as? AchtPacket
-                val achs = map["ACHS"] as? AchsPacket
-
-                val acsValue = acs?.value ?: "-"
-                val achtValue = acht?.value ?: "-"
-                val achsParts = achs?.value?.split(",").orEmpty()
-
-                val uvscTime = achsParts.getOrNull(0) ?: "-"
-                val uvscResult = achsParts.getOrNull(1) ?: "-"
-                val expectedTime = achsParts.getOrNull(2) ?: "-"
-
-                when {
-                    acsValue == "200" -> {
-                        _homeUiState.value = HomeUiState.UvscInProgress(
-                            progressTime = 0,
-                            recentUvscTime = achtValue,
-                            uvscTime = uvscTime,
-                            uvscResult = uvscResult,
-                            expectedTime = expectedTime
-                        )
-                    }
-
-                    acsValue.toIntOrNull()?.let { it >= 1000 } == true -> {
-                        val minutes = acsValue.toInt() - 1000
-                        _homeUiState.value = HomeUiState.UvscInProgress(
-                            progressTime = minutes,
-                            recentUvscTime = achtValue,
-                            uvscTime = uvscTime,
-                            uvscResult = uvscResult,
-                            expectedTime = expectedTime
-                        )
-                    }
-
-                    acsValue == "100" || acsValue == "-100" -> {
-                        _homeUiState.value = HomeUiState.Charging(
-                            recentUvscTime = achtValue,
-                            uvscTime = uvscTime,
-                            uvscResult = uvscResult,
-                            expectedTime = expectedTime
-                        )
-                    }
-
-                    else -> {}
+            bleRepository.latestPacketsMap
+                .filter { it.containsKey("ACS") || it.containsKey("ACHT") || it.containsKey("ACHS") }
+                .collect { map ->
+                    map["ACS"]?.let { updateUiStateFromAcs(it) }
+                    map["ACHT"]?.let { updateUiStateFromAcht(it) }
+                    map["ACHS"]?.let { updateUiStateFromAchs(it) }
                 }
+        }
+    }
+
+    private fun updateUiStateFromAcs(packet: ReceivePacket) {
+        val value = packet.valueAsString.toIntOrNull() ?: return
+        val info = _homeUiState.value as? UvscInfo
+
+        _homeUiState.update { state ->
+            when {
+                value == 200 -> {
+                    info?.toUvscInProgress(0) ?: state
+                }
+
+                value >= 1000 -> {
+                    val minutes = value - 1000
+                    when (state) {
+                        is HomeUiState.UvscInProgress -> state.copy(progressTime = minutes)
+                        else -> state
+                    }
+                }
+
+                value == 100 || value == -100 -> {
+                    info?.toCharging() ?: state
+                }
+
+                else -> state
+            }
+        }
+    }
+
+    private fun updateUiStateFromAcht(packet: ReceivePacket) {
+        val value = packet.valueAsString
+        _homeUiState.update {
+            when (it) {
+                is HomeUiState.Charging -> it.copy(recentUvscTime = value)
+                is HomeUiState.UvscInProgress -> it.copy(recentUvscTime = value)
+                else -> it
+            }
+        }
+    }
+
+    private fun updateUiStateFromAchs(packet: ReceivePacket) {
+        val value = packet.valueAsString
+        val (time, result, expected) = value.split(",").let {
+            Triple(
+                it.getOrNull(0) ?: "-",
+                it.getOrNull(1) ?: "-",
+                it.getOrNull(2) ?: "-"
+            )
+        }
+
+        _homeUiState.update {
+            when (it) {
+                is HomeUiState.Charging -> it.copy(
+                    uvscTime = time,
+                    uvscResult = result,
+                    expectedTime = expected
+                )
+
+                is HomeUiState.UvscInProgress -> it.copy(
+                    uvscTime = time,
+                    uvscResult = result,
+                    expectedTime = expected
+                )
+
+                else -> it
             }
         }
     }
