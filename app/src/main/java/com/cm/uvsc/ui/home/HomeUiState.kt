@@ -53,6 +53,19 @@ fun UvscInfo?.toUvscInProgress(progressTime: Int = 0, recentUvscTime: String) = 
     expectedTime = this?.expectedTime ?: "-"
 )
 
+fun UvscInfo?.toUvscInProgress(
+    progressTime: Int = 0,
+    uvscTime: String = "-",
+    uvscResult: String = "-",
+    expectedTime: String = "-"
+) = UvscInProgress(
+    progressTime = progressTime,
+    recentUvscTime = this?.recentUvscTime ?: "",
+    uvscTime = uvscTime,
+    uvscResult = uvscResult,
+    expectedTime = expectedTime
+)
+
 fun UvscInfo?.toCharging() = Charging(
     recentUvscTime = this?.recentUvscTime ?: "-",
     uvscTime = this?.uvscTime ?: "-",
