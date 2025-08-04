@@ -16,9 +16,9 @@ import com.cm.uvsc.MainViewModel
 import com.cm.uvsc.route.RouteHome
 import com.cm.uvsc.route.RouteReceiveHistory
 import com.cm.uvsc.route.RouteUvscHistory
-import com.cm.uvsc.ui.HomeRoute
-import com.cm.uvsc.ui.ReceiveRoute
-import com.cm.uvsc.ui.USCVRoute
+import com.cm.uvsc.ui.home.HomeRoute
+import com.cm.uvsc.ui.receive.ReceiveRoute
+import com.cm.uvsc.ui.history.USCVRoute
 import com.cm.uvsc.ui.home.HomeUiState
 
 @Composable

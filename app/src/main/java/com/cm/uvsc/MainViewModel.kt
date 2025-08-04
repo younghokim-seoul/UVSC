@@ -89,25 +89,26 @@ class MainViewModel @Inject constructor(
     }
 
     private fun updateUiStateFromAcs(packet: AcsPacket) {
+        Timber.i("Received ACS packet: $packet")
         val value = packet.valueAsString.toIntOrNull() ?: return
         val info = _homeUiState.value as? UvscInfo
 
         _homeUiState.update { state ->
             when {
                 value == 200 -> {
-                    info?.toUvscInProgress(0) ?: state
+                    info.toUvscInProgress(0)
                 }
 
                 value >= 1000 -> {
                     val minutes = value - 1000
                     when (state) {
                         is HomeUiState.UvscInProgress -> state.copy(progressTime = minutes)
-                        else -> state
+                        else -> info.toUvscInProgress(minutes)
                     }
                 }
 
                 value == 100 || value == -100 -> {
-                    info?.toCharging() ?: state
+                    info.toCharging()
                 }
 
                 else -> state
@@ -116,17 +117,25 @@ class MainViewModel @Inject constructor(
     }
 
     private fun updateUiStateFromAcht(packet: AchtPacket) {
+        Timber.i("Received ACHT packet: $packet")
         val value = packet.valueAsString
-        _homeUiState.update {
-            when (it) {
-                is HomeUiState.Charging -> it.copy(recentUvscTime = value)
-                is HomeUiState.UvscInProgress -> it.copy(recentUvscTime = value)
-                else -> it
+
+        _homeUiState.update { state ->
+            when (state) {
+                is HomeUiState.UvscInProgress -> {
+                    state.copy(recentUvscTime = value)
+                }
+
+                else -> {
+                    val info = state as? UvscInfo
+                    info.toUvscInProgress(recentUvscTime = value)
+                }
             }
         }
     }
 
     private fun updateUiStateFromAchs(packet: AchsPacket) {
+        Timber.i("Received ACSH packet: $packet")
         val value = packet.valueAsString
         val (time, result, expected) = value.splitTrimmed().let {
             Triple(
@@ -136,21 +145,22 @@ class MainViewModel @Inject constructor(
             )
         }
 
-        _homeUiState.update {
-            when (it) {
-                is HomeUiState.Charging -> it.copy(
+        _homeUiState.update { state ->
+            when (state) {
+                is HomeUiState.UvscInProgress -> state.copy(
                     uvscTime = time,
                     uvscResult = result,
                     expectedTime = expected
                 )
 
-                is HomeUiState.UvscInProgress -> it.copy(
-                    uvscTime = time,
-                    uvscResult = result,
-                    expectedTime = expected
-                )
-
-                else -> it
+                else -> {
+                    val info = state as? UvscInfo
+                    info.toUvscInProgress(
+                        uvscTime = time,
+                        uvscResult = result,
+                        expectedTime = expected
+                    )
+                }
             }
         }
     }
@@ -175,12 +185,13 @@ class MainViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
     private fun updateUvscHistoryFromPacket(packet: AchPacket) {
+        Timber.i("Received ACH packet: $packet")
         val parts = packet.valueAsString.splitTrimmed()
 
         val index = parts.getOrNull(0)?.toIntOrNull() ?: 0
-        val date = parts.getOrNull(1) ?: ""
-        val time = parts.getOrNull(2) ?: ""
-        val result = parts.getOrNull(3) ?: ""
+        val date = parts.getOrNull(1) ?: "-"
+        val time = parts.getOrNull(2) ?: "-"
+        val result = parts.getOrNull(3) ?: "-"
         val note = parts.getOrNull(4) ?: ""
 
         val entry = UvscHistory(
