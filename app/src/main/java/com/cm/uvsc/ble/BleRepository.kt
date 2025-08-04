@@ -28,13 +28,12 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.rx3.await
 import kotlinx.coroutines.withTimeout
+import kotlinx.datetime.LocalDateTime
 import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.datetime.*
 
 @Singleton
 class BleRepository @Inject constructor(
@@ -43,41 +42,36 @@ class BleRepository @Inject constructor(
 ) {
     private val _targetDevice = MutableSharedFlow<RxBleDevice?>(replay = 1)
 
-    private var scanJob: Job? = null
-    private var pollingJob: Job? = null
+    private var _scanJob: Job? = null
 
+    private var _lastSuccessfullyConnectedDevice: RxBleDevice? = null
 
-    /**
-     * 디바이스에서 받는 패킷을 Map형태로 적재.. 각 Compose 화면 마다 필요한 데이터 Filter로 가져다쓰면될듯
-     */
     private val _latestPacketsMap = MutableStateFlow<Map<String, ReceivePacket>>(emptyMap())
     val latestPacketsMap: StateFlow<Map<String, ReceivePacket>> = _latestPacketsMap
 
+    private val _scannedDevicesSet = MutableStateFlow<Set<RxBleDevice>>(emptySet())
+    val scannedDevices: StateFlow<Set<RxBleDevice>> = _scannedDevicesSet
 
-    private val connection: SharedFlow<RxBleConnection> = _targetDevice
+
+    private val _connection: SharedFlow<Pair<RxBleDevice, RxBleConnection>> = _targetDevice
         .flatMapLatest { device ->
-            device?.let { bleClient.connect(it) } ?: emptyFlow()
+            device?.let { bleClient.connect(it).map { connection -> device to connection } }
+                ?: emptyFlow()
+        }
+        .onEach { (device, _) ->
+            _lastSuccessfullyConnectedDevice = device
         }
         .catch { e -> Timber.e(e, "Connection stream failed") }
         .shareIn(externalScope, SharingStarted.WhileSubscribed(5000), 1)
 
-    private val connectionState: StateFlow<RxBleConnection.RxBleConnectionState?> = _targetDevice
+    private val _connectionState: StateFlow<RxBleConnection.RxBleConnectionState?> = _targetDevice
         .flatMapLatest { device ->
             device?.let { bleClient.connectionStateFlow(it) } ?: flowOf(null)
         }
         .stateIn(externalScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private val notifications: SharedFlow<ReceivePacket> = connection
-        .flatMapLatest { conn ->
-            bleClient.getNotificationFlow(conn, UUID.fromString(BleClient.CHARACTERISTIC_UUID))
-                .filter { rawBytes -> rawBytes.isPureAsciiText() }
-                .map { newData -> PacketParser.parse(String(newData, Charsets.US_ASCII)) }
-                .catch { e -> Timber.e(e, "Notification error") }
-        }
-        .shareIn(externalScope, SharingStarted.WhileSubscribed(5000))
-
     init {
-        connectionState.onEach { state ->
+        _connectionState.onEach { state ->
             Timber.i("RxBleConnectionState $state")
             when (state) {
                 RxBleConnection.RxBleConnectionState.CONNECTED -> {
@@ -86,35 +80,43 @@ class BleRepository @Inject constructor(
 
                 RxBleConnection.RxBleConnectionState.DISCONNECTED -> {
                     resetPacket()
-                    disconnectTrigger()
+                    _lastSuccessfullyConnectedDevice?.let { deviceToReconnect ->
+                        Timber.d("attempting auto-reconnect...")
+                        connect(deviceToReconnect)
+                    }
+
                 }
 
                 else -> {}
             }
         }.launchIn(externalScope)
 
-        notifications
+        _connection
+            .flatMapLatest { (_, connection) ->
+                bleClient.getNotificationFlow(
+                    connection,
+                    UUID.fromString(BleClient.CHARACTERISTIC_UUID)
+                )
+                    .filter { rawBytes -> rawBytes.isPureAsciiText() }
+                    .map { bytes -> PacketParser.parse(String(bytes, Charsets.US_ASCII)) }
+            }
             .onEach { newPacket ->
                 _latestPacketsMap.update { currentMap ->
                     currentMap + (newPacket.key to newPacket)
                 }
                 Timber.d("Packet received & map updated: $newPacket")
-            }.catch { e ->
-                Timber.e(e, "Notification processing error")
-            }.launchIn(externalScope)
+            }
+            .catch { e -> Timber.e(e, "Notification processing error") }
+            .launchIn(externalScope)
     }
 
-
-    /**
-     * 응답이 true일 경우에 로직 처리해주세요.
-     */
     suspend fun sendToRetry(
         data: SendPacket,
         retryCount: Int = 5,
         retryDelay: Long = 500,
         ackTimeout: Long = 60_000L
     ): Boolean {
-        if (connectionState.value != RxBleConnection.RxBleConnectionState.CONNECTED) {
+        if (_connectionState.value != RxBleConnection.RxBleConnectionState.CONNECTED) {
             Timber.w("Cannot send data: Not connected.")
             return false
         }
@@ -128,7 +130,7 @@ class BleRepository @Inject constructor(
                 return@repeat
             }
 
-            runCatching {
+            val ack = runCatching {
                 withTimeout(ackTimeout) {
                     latestPacketsMap
                         .filter { map ->
@@ -137,10 +139,13 @@ class BleRepository @Inject constructor(
                         }
                         .first()
                 }
+            }
+
+            if (ack.isSuccess) {
                 Timber.d("ACK received for key '${data}'. Send successful.")
                 return true
-            }.onFailure {
-                Timber.e("ACK timeout for key '${data}'. Retrying...")
+            } else {
+                Timber.w("ACK timeout for key '${data}'. Retrying...")
             }
 
         }
@@ -151,18 +156,20 @@ class BleRepository @Inject constructor(
 
 
     fun startScan() {
-        scanJob?.cancel()
-        scanJob = bleClient.startScan()
+        _scannedDevicesSet.value = emptySet()
+        _scanJob?.cancel()
+        _scanJob = bleClient.startScan()
             .onEach { device ->
-                connect(device)
-                stopScan()
+                _scannedDevicesSet.update { currentSet ->
+                    currentSet + device
+                }
             }
             .launchIn(externalScope)
     }
 
     fun stopScan() {
-        scanJob?.cancel()
-        scanJob = null
+        _scanJob?.cancel()
+        _scanJob = null
     }
 
     fun connect(device: RxBleDevice) {
@@ -172,21 +179,18 @@ class BleRepository @Inject constructor(
 
     fun disconnect() {
         Timber.d("Disconnecting...")
+        _lastSuccessfullyConnectedDevice = null
         _targetDevice.tryEmit(null)
     }
 
     private suspend fun sendData(data: ByteArray): Boolean {
         return try {
-            bleClient.send(connection.first(),data)
+            bleClient.send(_connection.first().second, data)
             true
         } catch (e: Exception) {
             Timber.e(e, "Single send failed")
             false
         }
-    }
-
-    private fun disconnectTrigger() {
-        _targetDevice.tryEmit(null)
     }
 
     private fun resetPacket() {
