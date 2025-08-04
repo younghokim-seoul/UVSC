@@ -19,18 +19,20 @@ import com.cm.uvsc.ui.home.UvscInfo
 import com.cm.uvsc.ui.home.toCharging
 import com.cm.uvsc.ui.home.toUvscInProgress
 import com.cm.uvsc.ui.receive.ReceiveData
+import com.cm.uvsc.ui.receive.ReceiveScanResult
 import com.cm.uvsc.util.achPackets
 import com.cm.uvsc.util.achsPackets
 import com.cm.uvsc.util.achtPackets
 import com.cm.uvsc.util.acsPackets
-import com.cm.uvsc.util.filterForOthers
 import com.cm.uvsc.util.splitTrimmed
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -55,6 +57,7 @@ class MainViewModel @Inject constructor(
         Timber.i("bleRepository => $bleRepository")
         observeHomePacket()
         observeHistoryPacket()
+        observeReceiveData()
     }
 
     fun startScan() {
@@ -195,24 +198,49 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private fun observeReceiveData() =
+    private fun observeReceiveData() {
         bleRepository.latestPacketsMap
-            .filterForOthers()
-            .onEach { map ->
+            .scan(initial = ReceiveScanResult(emptyMap(), null)) { acc, newMap ->
+                val changedPacket = newMap.values.find { it != acc.currentMap[it.key] }
+                ReceiveScanResult(newMap, changedPacket)
             }
+            .mapNotNull { it.changedPacket }
+            .onEach { updateReceiveData(it) }
             .launchIn(viewModelScope)
+    }
 
     private fun updateReceiveData(packet: ReceivePacket) {
         _receiveDataList.update { currentList ->
-            (currentList).sortedByDescending { it.isChecked }
+            val existingIndex = currentList.indexOfFirst { it.key == packet.key }
+
+            if (existingIndex != -1) {
+                currentList.mapIndexed { index, data ->
+                    if (index == existingIndex) {
+                        data.copy(value = packet.valueAsString, isLatest = true)
+                    } else {
+                        if (data.isLatest) data.copy(isLatest = false) else data
+                    }
+                }
+            } else {
+                currentList.map { if (it.isLatest) it.copy(isLatest = false) else it } +
+                        ReceiveData(
+                            key = packet.key,
+                            value = packet.valueAsString,
+                            isLatest = true,
+                            remarks = ""
+                        )
+            }.sortedByDescending { it.isChecked }
         }
     }
 
     fun toggleReceiveDataChecked(key: String) {
         _receiveDataList.update { currentList ->
-            currentList.map {
-                if (it.key == key) it.copy(isChecked = !it.isChecked) else it
-            }.sortedByDescending { it.isChecked }
+            val toggledItem = currentList.find { it.key == key } ?: return@update currentList
+            val isChecking = !toggledItem.isChecked
+
+            currentList
+                .map { it.copy(isChecked = (it.key == key) && isChecking) }
+                .sortedByDescending { it.isChecked }
         }
     }
 
