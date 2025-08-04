@@ -1,10 +1,9 @@
-package com.cm.uvsc.ui
+package com.cm.uvsc.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,8 +28,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cm.uvsc.ui.home.HomeUiState
-import com.cm.uvsc.ui.home.UvscInfo
 import com.cm.uvsc.ui.theme.USCVColor
 
 @Composable
@@ -47,26 +44,12 @@ fun HomeRoute(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        when (uiState) {
-            is HomeUiState.Charging,
-            is HomeUiState.UvscInProgress -> {
-                HomeContentView(state = uiState, onClick = onClickControl)
-            }
-
-            is HomeUiState.NoData -> {
-                InfoPanel(info = null, batteryIcon = uiState.batteryResId)
-            }
-        }
+        StatusCard(statusText = uiState.statusText)
+        Spacer(modifier = Modifier.height(16.dp))
+        InfoPanel(info = uiState as? UvscInfo, batteryIcon = uiState.batteryResId)
+        Spacer(modifier = Modifier.weight(1f))
+        ControlButton(buttonText = uiState.controlBtnText, onClick = onClickControl)
     }
-}
-
-@Composable
-fun ColumnScope.HomeContentView(state: HomeUiState, onClick: () -> Unit) {
-    StatusCard(statusText = state.statusText)
-    Spacer(modifier = Modifier.height(16.dp))
-    InfoPanel(info = state as? UvscInfo, batteryIcon = state.batteryResId)
-    Spacer(modifier = Modifier.weight(1f))
-    ControlButton(buttonText = state.controlBtnText, onClick = onClick)
 }
 
 @Composable
@@ -122,7 +105,7 @@ fun InfoPanel(info: UvscInfo?, batteryIcon: Int) {
 
 @Composable
 fun InfoRow(label: String, value: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(modifier = Modifier.padding(vertical = 4.dp)) {
         Text(text = "$label: ", fontSize = 16.sp, color = USCVColor.Black)
         Text(text = value, fontSize = 16.sp, color = USCVColor.Black)
     }
@@ -133,7 +116,7 @@ fun BatteryIcon(resourceId: Int) {
     Icon(
         painter = painterResource(id = resourceId),
         contentDescription = null,
-        modifier = Modifier.size(40.dp, 100.dp),
+        modifier = Modifier.size(60.dp, 160.dp),
         tint = Color.Unspecified
     )
 }

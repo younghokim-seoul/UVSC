@@ -1,4 +1,4 @@
-package com.cm.uvsc.ui
+package com.cm.uvsc.ui.receive
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,8 +23,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.cm.uvsc.ui.component.TableCell
 import com.cm.uvsc.ui.component.VDivider
-import com.cm.uvsc.ui.receive.ReceiveColumn
-import com.cm.uvsc.ui.receive.ReceiveData
 import com.cm.uvsc.ui.theme.USCVColor
 
 @Composable
@@ -45,7 +43,6 @@ fun ReceiveRoute(
                 ReceiveTableRow(
                     item = item,
                     isOdd = index % 2 != 0,
-                    isLatest = index == 0,
                     onCheckedChange = { onCheckedChange(item.key) }
                 )
             }
@@ -86,11 +83,10 @@ fun ReceiveTableHeader() {
 fun ReceiveTableRow(
     item: ReceiveData,
     isOdd: Boolean,
-    isLatest: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
     val backgroundColor = if (isOdd) USCVColor.Blue02A30 else USCVColor.PaleGray
-    val textColor = if (isLatest) USCVColor.Neon01 else Color.Black
+    val textColor = if (item.isLatest) USCVColor.Neon01 else Color.Black
 
     Row(
         modifier = Modifier

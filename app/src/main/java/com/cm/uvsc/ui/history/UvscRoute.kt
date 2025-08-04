@@ -1,4 +1,4 @@
-package com.cm.uvsc.ui
+package com.cm.uvsc.ui.history
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,8 +21,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.cm.uvsc.ui.component.TableCell
 import com.cm.uvsc.ui.component.VDivider
-import com.cm.uvsc.ui.history.UvscHistory
-import com.cm.uvsc.ui.history.UvscHistoryColumn
 import com.cm.uvsc.ui.theme.USCVColor
 
 @Composable
