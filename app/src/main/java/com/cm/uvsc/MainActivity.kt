@@ -3,15 +3,19 @@ package com.cm.uvsc
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.cm.uvsc.route.LaunchedRouter
 import com.cm.uvsc.route.RouteHome
 import com.cm.uvsc.route.RouteReceiveHistory
 import com.cm.uvsc.route.RouteUvscHistory
+import com.cm.uvsc.ui.DeviceScanDialog
 import com.cm.uvsc.ui.MainScreen
 import com.cm.uvsc.ui.theme.UVSCTheme
 import com.gun0912.tedpermission.coroutine.TedPermission
@@ -44,6 +48,20 @@ class MainActivity : ComponentActivity() {
                     },
                     viewModel = viewModel
                 )
+
+                val isConnected by viewModel.isConnected.collectAsState()
+                if (!isConnected) {
+                    val searchQuery by viewModel.searchQuery.collectAsState()
+                    val devices by viewModel.filteredDevices.collectAsState()
+                    DeviceScanDialog(
+                        searchQuery = searchQuery,
+                        devices = devices,
+                        onSearchQueryChanged = viewModel::onSearchQueryChanged,
+                        onConnectClick = viewModel::connectDevice
+                    )
+                } else {
+                    Toast.makeText(this, "장치가 성공적으로 연결되었습니다", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }

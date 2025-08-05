@@ -25,14 +25,21 @@ import com.cm.uvsc.util.achsPackets
 import com.cm.uvsc.util.achtPackets
 import com.cm.uvsc.util.acsPackets
 import com.cm.uvsc.util.splitTrimmed
+import com.polidea.rxandroidble3.RxBleConnection
+import com.polidea.rxandroidble3.RxBleDevice
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -52,6 +59,26 @@ class MainViewModel @Inject constructor(
 
     private val _receiveDataList = MutableStateFlow<List<ReceiveData>>(emptyList())
     val receiveDataList: StateFlow<List<ReceiveData>> = _receiveDataList.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val scannedDevices: StateFlow<List<RxBleDevice>> = bleRepository.scannedDevices
+        .map { it.toList() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val filteredDevices = combine(
+        searchQuery.debounce(300),
+        scannedDevices
+    ) { query, devices ->
+        devices
+            .takeIf { query.isNotBlank() }
+            ?.filter { it.name?.contains(query, true) == true } ?: devices
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val isConnected: StateFlow<Boolean> = bleRepository.connectionState
+        .map { it == RxBleConnection.RxBleConnectionState.CONNECTED }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     init {
         Timber.i("bleRepository => $bleRepository")
@@ -277,5 +304,13 @@ class MainViewModel @Inject constructor(
             saveState = true,
             launchSingleTop = true,
         )
+    }
+
+    fun onSearchQueryChanged(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun connectDevice(device: RxBleDevice) {
+        bleRepository.connect(device)
     }
 }

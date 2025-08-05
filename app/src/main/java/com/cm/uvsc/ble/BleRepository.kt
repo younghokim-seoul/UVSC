@@ -69,6 +69,7 @@ class BleRepository @Inject constructor(
             device?.let { bleClient.connectionStateFlow(it) } ?: flowOf(null)
         }
         .stateIn(externalScope, SharingStarted.WhileSubscribed(5000), null)
+    val connectionState: StateFlow<RxBleConnection.RxBleConnectionState?> = _connectionState
 
     init {
         _connectionState.onEach { state ->
