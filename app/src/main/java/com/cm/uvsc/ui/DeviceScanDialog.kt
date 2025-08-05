@@ -1,6 +1,7 @@
 package com.cm.uvsc.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.cm.uvsc.ui.theme.USCVColor
 import com.polidea.rxandroidble3.RxBleDevice
 
@@ -35,7 +37,13 @@ fun DeviceScanDialog(
     onSearchQueryChanged: (String) -> Unit,
     onConnectClick: (RxBleDevice) -> Unit
 ) {
-    Dialog(onDismissRequest = { /* Do nothing to prevent dismissal */ }) {
+    Dialog(
+        onDismissRequest = { /* Do nothing to prevent dismissal */ },
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false
+        )
+    ) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -68,21 +76,42 @@ fun DeviceScanDialog(
                     shape = RoundedCornerShape(8.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                LazyColumn(
-                    modifier = Modifier.weight(1f, fill = false)
-                ) {
-                    itemsIndexed(
-                        items = devices,
-                        key = { _, device -> device.bluetoothDevice.address }
-                    ) { index, device ->
-                        DeviceItem(device = device, onConnectClick = { onConnectClick(device) })
-                        if (index < devices.lastIndex) {
-                            HorizontalDivider()
+
+                if (devices.isEmpty()) {
+                    NoDevicesView()
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f, fill = false)
+                    ) {
+                        itemsIndexed(
+                            items = devices,
+                            key = { _, device -> device.bluetoothDevice.address }
+                        ) { index, device ->
+                            DeviceItem(device = device, onConnectClick = { onConnectClick(device) })
+                            if (index < devices.lastIndex) {
+                                HorizontalDivider()
+                            }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun NoDevicesView() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "검색된 기기가 없습니다",
+            fontSize = 16.sp,
+            color = USCVColor.Gray
+        )
     }
 }
 
