@@ -1,7 +1,7 @@
 [versions]
 agp = "8.11.1"
-kotlin = "2.0.21"
-ksp = "2.1.21-2.0.1"
+kotlin = "2.2.0"
+ksp = "2.2.0-2.0.2"
 
 
 ## Hilt
@@ -14,7 +14,7 @@ hiltWork = "1.2.0"
 
 
 # https://github.com/Kotlin/kotlinx.serialization
-kotlinxSerializationJson = "1.8.1"
+kotlinxSerializationJson = "1.9.0"
 # https://github.com/Kotlin/kotlinx-datetime/releases
 kotlinxDatetime = "0.6.2"
 # https://github.com/Kotlin/kotlinx.collections.immutable
@@ -50,6 +50,13 @@ playServiceLocation = "21.3.0"
 
 # https://github.com/JakeWharton/timber
 timber = "5.0.1"
+
+# https://github.com/fornewid/naver-map-compose
+naver-map-compose = "1.8.2"
+naver-map-location = "21.0.2"
+
+# https://developer.android.com/jetpack/androidx/releases/datastore
+androidxDatastore = "1.1.7"
 
 
 [libraries]
@@ -99,6 +106,11 @@ play-services-location = { group = "com.google.android.gms", name = "play-servic
 
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 
+androidx-datastore = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "androidxDatastore" }
+
+naver-map-compose = { group = "io.github.fornewid", name = "naver-map-compose", version.ref = "naver-map-compose" }
+naver-map-location = { group = "io.github.fornewid", name = "naver-map-location", version.ref = "naver-map-location" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
@@ -106,3 +118,10 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+
+
+[bundles]
+naver-map-compose = [
+    "naver-map-compose",
+    "naver-map-location",
+]

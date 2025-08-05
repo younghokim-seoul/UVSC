@@ -1,4 +1,4 @@
-package com.cm.geofence.geofence
+package com.cm.geofence.core.geofence
 
 import android.content.BroadcastReceiver
 import android.content.Context

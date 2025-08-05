@@ -1,4 +1,4 @@
-package com.cm.geofence.geofence
+package com.cm.geofence.core.geofence
 
 import android.annotation.SuppressLint
 import android.app.PendingIntent
@@ -18,7 +18,7 @@ import kotlin.coroutines.suspendCoroutine
 
 @Singleton
 class GeofenceManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
     private val geofencingClient = LocationServices.getGeofencingClient(context)
     val geofenceList = mutableMapOf<String, Geofence>()

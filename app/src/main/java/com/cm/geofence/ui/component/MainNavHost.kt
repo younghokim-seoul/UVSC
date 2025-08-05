@@ -12,7 +12,7 @@ import androidx.navigation.compose.composable
 import com.cm.geofence.MainNavigator
 import com.cm.geofence.route.RouteGeofence
 import com.cm.geofence.route.RouteHome
-import com.cm.geofence.ui.HomeRoute
+import com.cm.geofence.ui.map.HomeRoute
 import com.cm.geofence.ui.GeofenceRoute
 
 @Composable

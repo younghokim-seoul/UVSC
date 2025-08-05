@@ -14,13 +14,14 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.cm.uvsc"
+        applicationId = "com.cm.geofence"
         minSdk = 27
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders["NAVER_MAP_CLIENT_ID"] = findProperty("NAVER_MAP_CLIENT_ID") as String
     }
 
     buildTypes {
@@ -82,8 +83,8 @@ dependencies {
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
 
-
-
+    implementation(libs.androidx.datastore)
+    
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
@@ -94,10 +95,11 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.navigation)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.bundles.naver.map.compose)
 
-    implementation(libs.maps.compose)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.play.services.location)
+
 
 
     androidTestImplementation(libs.androidx.ui.test.junit4)

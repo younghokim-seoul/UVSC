@@ -10,7 +10,7 @@ internal enum class MainTab(
     val route: Route,
 ) {
     HOME(
-        contentDescription = "메인",
+        contentDescription = "Map",
         route = RouteHome,
     ),
     GEO_FENCE(

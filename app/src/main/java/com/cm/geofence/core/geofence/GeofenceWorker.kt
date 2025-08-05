@@ -1,4 +1,4 @@
-package com.cm.geofence.geofence
+package com.cm.geofence.core.geofence
 
 import android.content.Context
 import androidx.hilt.work.HiltWorker
@@ -10,12 +10,13 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.google.android.gms.location.Geofence
 import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 import kotlinx.coroutines.coroutineScope
 import timber.log.Timber
 import java.util.UUID
 
 @HiltWorker
-class GeofenceWorker(
+class GeofenceWorker @AssistedInject constructor(
     @Assisted applicationContext: Context,
     @Assisted workerParams: WorkerParameters,
 ) : CoroutineWorker(applicationContext, workerParams) {
