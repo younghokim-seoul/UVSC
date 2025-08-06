@@ -69,6 +69,7 @@ class BleRepository @Inject constructor(
             device?.let { bleClient.connectionStateFlow(it) } ?: flowOf(null)
         }
         .stateIn(externalScope, SharingStarted.WhileSubscribed(5000), null)
+    val connectionState: StateFlow<RxBleConnection.RxBleConnectionState?> = _connectionState
 
     init {
         _connectionState.onEach { state ->
@@ -110,10 +111,6 @@ class BleRepository @Inject constructor(
             .launchIn(externalScope)
     }
 
-
-    /**
-     * 응답이 true일 경우에 로직 처리해주세요.
-     */
     suspend fun sendToRetry(
         data: SendPacket,
         retryCount: Int = 5,

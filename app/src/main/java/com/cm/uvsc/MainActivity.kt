@@ -3,16 +3,21 @@ package com.cm.uvsc
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.cm.uvsc.route.LaunchedRouter
 import com.cm.uvsc.route.RouteHome
 import com.cm.uvsc.route.RouteReceiveHistory
 import com.cm.uvsc.route.RouteUvscHistory
+import com.cm.uvsc.ui.DeviceScanDialog
 import com.cm.uvsc.ui.MainScreen
+import com.cm.uvsc.ui.UiEvent
 import com.cm.uvsc.ui.theme.UVSCTheme
 import com.gun0912.tedpermission.coroutine.TedPermission
 import dagger.hilt.android.AndroidEntryPoint
@@ -28,6 +33,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         checkPermissions()
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        collectEvent()
 
         setContent {
             val navigator: MainNavigator = rememberMainNavigator()
@@ -38,11 +44,26 @@ class MainActivity : ComponentActivity() {
                     onTabSelected = { tab ->
                         when (tab.route) {
                             is RouteHome -> viewModel.navigateHome()
-                            is RouteUvscHistory -> viewModel.navigatUvscHistory()
+                            is RouteUvscHistory -> viewModel.navigateUvscHistory()
                             is RouteReceiveHistory -> viewModel.navigateRouteReceiveHistory()
                         }
                     },
+                    viewModel = viewModel
                 )
+
+                val isConnected by viewModel.isConnected.collectAsState()
+                if (!isConnected) {
+                    val searchQuery by viewModel.searchQuery.collectAsState()
+                    val devices by viewModel.filteredDevices.collectAsState()
+                    DeviceScanDialog(
+                        searchQuery = searchQuery,
+                        devices = devices,
+                        onSearchQueryChanged = viewModel::onSearchQueryChanged,
+                        onConnectClick = viewModel::connectDevice
+                    )
+                } else {
+                    Toast.makeText(this, "장치가 성공적으로 연결되었습니다", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -78,5 +99,31 @@ class MainActivity : ComponentActivity() {
                 finish()
             }
         }
+    }
+
+    private fun collectEvent() {
+        lifecycleScope.launch {
+            viewModel.uiEvent.collect {
+                when (it) {
+                    is UiEvent.ModeChanged -> {
+                        Toast.makeText(this@MainActivity, "모드 변경이 완료되었습니다", Toast.LENGTH_LONG)
+                            .show()
+                    }
+
+                    is UiEvent.ConnectResult -> {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "장치 연결 ${if (it.isSuccess) "성공" else "실패"}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        viewModel.disconnect()
     }
 }

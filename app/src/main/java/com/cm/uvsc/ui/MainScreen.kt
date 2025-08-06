@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.cm.uvsc.MainNavigator
 import com.cm.uvsc.MainTab
+import com.cm.uvsc.MainViewModel
 import com.cm.uvsc.rememberMainNavigator
 import com.cm.uvsc.ui.component.MainNavHost
 import com.cm.uvsc.ui.component.MainTopBar
@@ -20,13 +21,15 @@ import kotlinx.collections.immutable.toPersistentList
 internal fun MainScreen(
     onTabSelected: (MainTab) -> Unit,
     navigator: MainNavigator = rememberMainNavigator(),
+    viewModel: MainViewModel
 ) {
     val snackBarHostState = remember { SnackbarHostState() }
 
     MainScreenContent(
         onTabSelected = onTabSelected,
         navigator = navigator,
-        snackBarHostState = snackBarHostState
+        snackBarHostState = snackBarHostState,
+        viewModel = viewModel
     )
 }
 
@@ -36,6 +39,7 @@ private fun MainScreenContent(
     onTabSelected: (MainTab) -> Unit,
     snackBarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
+    viewModel: MainViewModel
 ) {
     Scaffold(
         modifier = modifier.navigationBarsPadding(),
@@ -53,6 +57,7 @@ private fun MainScreenContent(
             MainNavHost(
                 navigator = navigator,
                 padding = padding,
+                viewModel = viewModel
             )
         })
 }
