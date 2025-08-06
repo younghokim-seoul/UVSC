@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -23,6 +24,26 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    val keystoreProperties = Properties().apply {
+        val file = rootProject.file("gradle.properties")
+        if (file.exists()) {
+            load(file.inputStream())
+        } else {
+            println("keystore.properties not found")
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("../keystore/uvsc-release.jks")
+            storePassword =
+                keystoreProperties["storePassword"] as? String ?: error("storePassword is null")
+            keyAlias = keystoreProperties["keyAlias"] as? String ?: error("keyAlias is null")
+            keyPassword =
+                keystoreProperties["keyPassword"] as? String ?: error("keyPassword is null")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -30,6 +51,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
