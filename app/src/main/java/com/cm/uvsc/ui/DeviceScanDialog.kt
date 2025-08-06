@@ -3,6 +3,8 @@ package com.cm.uvsc.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +23,9 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -78,21 +83,9 @@ fun DeviceScanDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (devices.isEmpty()) {
-                    NoDevicesView()
+                    NoDeviceView()
                 } else {
-                    LazyColumn(
-                        modifier = Modifier.weight(1f, fill = false)
-                    ) {
-                        itemsIndexed(
-                            items = devices,
-                            key = { _, device -> device.bluetoothDevice.address }
-                        ) { index, device ->
-                            DeviceItem(device = device, onConnectClick = { onConnectClick(device) })
-                            if (index < devices.lastIndex) {
-                                HorizontalDivider()
-                            }
-                        }
-                    }
+                    DeviceListView(devices = devices, onConnectClick = onConnectClick)
                 }
             }
         }
@@ -100,7 +93,7 @@ fun DeviceScanDialog(
 }
 
 @Composable
-fun NoDevicesView() {
+fun NoDeviceView() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -140,6 +133,51 @@ fun DeviceItem(device: RxBleDevice, onConnectClick: () -> Unit) {
         }
         Button(onClick = onConnectClick) {
             Text("연결")
+        }
+    }
+}
+
+@Composable
+fun ColumnScope.DeviceListView(devices: List<RxBleDevice>, onConnectClick: (RxBleDevice) -> Unit) {
+    LazyColumn(
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxWidth()
+            .drawWithContent {
+                drawContent()
+
+                val fadeHeight = 30.dp.toPx()
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(USCVColor.White, Color.Transparent),
+                        endY = fadeHeight
+                    ),
+                    size = this.size.copy(height = fadeHeight)
+                )
+
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, USCVColor.White),
+                        startY = this.size.height - fadeHeight,
+                        endY = this.size.height
+                    ),
+                    topLeft = Offset(
+                        x = 0f,
+                        y = this.size.height - fadeHeight
+                    ),
+                    size = this.size.copy(height = fadeHeight)
+                )
+            },
+        contentPadding = PaddingValues(vertical = 16.dp)
+    ) {
+        itemsIndexed(
+            items = devices,
+            key = { _, device -> device.bluetoothDevice.address }
+        ) { index, device ->
+            DeviceItem(device = device, onConnectClick = { onConnectClick(device) })
+            if (index < devices.lastIndex) {
+                HorizontalDivider()
+            }
         }
     }
 }

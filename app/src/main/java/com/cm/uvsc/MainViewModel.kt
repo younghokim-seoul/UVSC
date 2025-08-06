@@ -76,15 +76,29 @@ class MainViewModel @Inject constructor(
             ?.filter { it.name?.contains(query, true) == true } ?: devices
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val isConnected: StateFlow<Boolean> = bleRepository.connectionState
+    private val _isConnected: StateFlow<Boolean> = bleRepository.connectionState
         .map { it == RxBleConnection.RxBleConnectionState.CONNECTED }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val isConnected: StateFlow<Boolean> = _isConnected
 
     init {
         Timber.i("bleRepository => $bleRepository")
-        observeHomePacket()
-        observeHistoryPacket()
-        observeReceiveData()
+        observeConnectionState()
+    }
+
+    private fun observeConnectionState() {
+        viewModelScope.launch {
+            _isConnected.collect {
+                if (it) {
+                    stopScan()
+                    observeHomePacket()
+                    observeHistoryPacket()
+                    observeReceiveData()
+                } else {
+                    removeData()
+                }
+            }
+        }
     }
 
     fun startScan() {
@@ -93,7 +107,6 @@ class MainViewModel @Inject constructor(
 
     fun stopScan() {
         bleRepository.stopScan()
-        bleRepository.disconnect()
     }
 
     private fun observeHomePacket() {
@@ -312,5 +325,11 @@ class MainViewModel @Inject constructor(
 
     fun connectDevice(device: RxBleDevice) {
         bleRepository.connect(device)
+    }
+
+    private fun removeData() {
+        _homeUiState.value = HomeUiState.NoData
+        _uvscHistoryList.value = emptyList()
+        _receiveDataList.value = emptyList()
     }
 }
