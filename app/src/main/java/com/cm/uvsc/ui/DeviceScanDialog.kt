@@ -78,7 +78,8 @@ fun DeviceScanDialog(
                         focusedIndicatorColor = USCVColor.Blue02,
                         unfocusedIndicatorColor = Color.Transparent
                     ),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    singleLine = true
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
