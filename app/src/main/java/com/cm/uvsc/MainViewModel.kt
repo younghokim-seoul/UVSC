@@ -17,6 +17,7 @@ import com.cm.uvsc.ui.UiEvent
 import com.cm.uvsc.ui.history.UvscHistory
 import com.cm.uvsc.ui.home.HomeUiState
 import com.cm.uvsc.ui.home.UvscInfo
+import com.cm.uvsc.ui.home.emptyCharging
 import com.cm.uvsc.ui.home.toCharging
 import com.cm.uvsc.ui.home.toUvscInProgress
 import com.cm.uvsc.ui.receive.ReceiveData
@@ -54,7 +55,7 @@ class MainViewModel @Inject constructor(
     private val bleRepository: BleRepository
 ) : ViewModel() {
 
-    private val _homeUiState = MutableStateFlow<HomeUiState>(HomeUiState.NoData)
+    private val _homeUiState = MutableStateFlow<HomeUiState>(emptyCharging)
     val homeUiState: StateFlow<HomeUiState> = _homeUiState.asStateFlow()
 
     private val _uvscHistoryList = MutableStateFlow<List<UvscHistory>>(emptyList())
@@ -339,7 +340,7 @@ class MainViewModel @Inject constructor(
     }
 
     private fun removeData() {
-        _homeUiState.value = HomeUiState.NoData
+        _homeUiState.value = emptyCharging
         _uvscHistoryList.value = emptyList()
         _receiveDataList.value = emptyList()
     }

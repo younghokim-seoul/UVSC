@@ -9,11 +9,6 @@ sealed class HomeUiState {
     open val batteryResId: Int = R.drawable.battery_blue
     open val controlBtnText: String = ""
 
-    data object NoData : HomeUiState() {
-        override val statusText = "충전 중(UVSC 대기)"
-        override val controlBtnText = "UVSC 시작"
-    }
-
     data class Charging(
         override val recentUvscTime: String,
         override val uvscTime: String,
@@ -36,6 +31,13 @@ sealed class HomeUiState {
         override val controlBtnText = "UVSC 멈춤"
     }
 }
+
+val emptyCharging = Charging(
+    recentUvscTime = "-",
+    uvscTime = "-",
+    uvscResult = "-",
+    expectedTime = "-"
+)
 
 fun UvscInfo?.toUvscInProgress(progressTime: Int) = UvscInProgress(
     progressTime = progressTime,
