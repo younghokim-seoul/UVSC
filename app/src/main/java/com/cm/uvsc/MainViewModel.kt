@@ -109,6 +109,10 @@ class MainViewModel @Inject constructor(
         bleRepository.stopScan()
     }
 
+    fun disconnect() {
+        bleRepository.disconnect()
+    }
+
     private fun observeHomePacket() {
         val homeFlow = bleRepository.latestPacketsMap
 
