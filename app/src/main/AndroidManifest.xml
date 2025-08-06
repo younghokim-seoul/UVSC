@@ -45,6 +45,9 @@
             android:name="com.naver.maps.map.NCP_KEY_ID"
             android:value="${NAVER_MAP_CLIENT_ID}" />
 
+        <receiver
+            android:name="com.cm.geofence.core.geofence.GeofenceBroadcastReceiver"
+            android:exported="false"/>
     </application>
 
 </manifest>
