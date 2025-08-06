@@ -17,6 +17,7 @@ import com.cm.uvsc.route.RouteReceiveHistory
 import com.cm.uvsc.route.RouteUvscHistory
 import com.cm.uvsc.ui.DeviceScanDialog
 import com.cm.uvsc.ui.MainScreen
+import com.cm.uvsc.ui.UiEvent
 import com.cm.uvsc.ui.theme.UVSCTheme
 import com.gun0912.tedpermission.coroutine.TedPermission
 import dagger.hilt.android.AndroidEntryPoint
@@ -32,6 +33,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         checkPermissions()
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        collectEvent()
 
         setContent {
             val navigator: MainNavigator = rememberMainNavigator()
@@ -95,6 +97,27 @@ class MainActivity : ComponentActivity() {
                 viewModel.startScan()
             } else {
                 finish()
+            }
+        }
+    }
+
+    private fun collectEvent() {
+        lifecycleScope.launch {
+            viewModel.uiEvent.collect {
+                when (it) {
+                    is UiEvent.ModeChanged -> {
+                        Toast.makeText(this@MainActivity, "모드 변경이 완료되었습니다", Toast.LENGTH_LONG)
+                            .show()
+                    }
+
+                    is UiEvent.ConnectResult -> {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "장치 연결 ${if (it.isSuccess) "성공" else "실패"}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
             }
         }
     }

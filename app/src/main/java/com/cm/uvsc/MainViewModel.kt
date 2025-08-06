@@ -13,6 +13,7 @@ import com.cm.uvsc.route.Navigator
 import com.cm.uvsc.route.RouteHome
 import com.cm.uvsc.route.RouteReceiveHistory
 import com.cm.uvsc.route.RouteUvscHistory
+import com.cm.uvsc.ui.UiEvent
 import com.cm.uvsc.ui.history.UvscHistory
 import com.cm.uvsc.ui.home.HomeUiState
 import com.cm.uvsc.ui.home.UvscInfo
@@ -28,9 +29,11 @@ import com.cm.uvsc.util.splitTrimmed
 import com.polidea.rxandroidble3.RxBleConnection
 import com.polidea.rxandroidble3.RxBleDevice
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
@@ -80,6 +83,9 @@ class MainViewModel @Inject constructor(
         .map { it == RxBleConnection.RxBleConnectionState.CONNECTED }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
     val isConnected: StateFlow<Boolean> = _isConnected
+
+    private val _uiEvent = MutableSharedFlow<UiEvent>()
+    val uiEvent = _uiEvent.asSharedFlow()
 
     init {
         Timber.i("bleRepository => $bleRepository")
@@ -216,8 +222,9 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun retryUntilReceive(packet: SetChargeMode) {
-        val success = bleRepository.sendToRetry(data = packet)
-        if (!success) {
+        val isSuccess = bleRepository.sendToRetry(data = packet)
+        _uiEvent.emit(UiEvent.ModeChanged(isSuccess = isSuccess))
+        if (!isSuccess) {
             Timber.w("BLE response not received for $packet after retry")
         }
     }
