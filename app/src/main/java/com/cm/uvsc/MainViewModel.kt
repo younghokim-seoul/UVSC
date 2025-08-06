@@ -212,7 +212,7 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun retryUntilReceive(packet: SetChargeMode) {
-        val success = bleRepository.sendToRetry(data = packet, retryCount = Int.MAX_VALUE)
+        val success = bleRepository.sendToRetry(data = packet)
         if (!success) {
             Timber.w("BLE response not received for $packet after retry")
         }
