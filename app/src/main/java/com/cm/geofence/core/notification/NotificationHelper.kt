@@ -8,6 +8,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import timber.log.Timber
 
 class NotificationHelper(
     private val context: Context,
@@ -35,6 +36,7 @@ class NotificationHelper(
         @DrawableRes smallIcon: Int,
         clickPendingIntent: PendingIntent? = null
     ) {
+        Timber.i("Showing notification: id=$notificationId, title=$title, message=$message")
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(smallIcon)
             .setContentTitle(title)
@@ -50,5 +52,7 @@ class NotificationHelper(
         with(NotificationManagerCompat.from(context)) {
             notify(notificationId, builder.build())
         }
+
+        Timber.i("Notification shown: id=$notificationId, title=$title, message=$message")
     }
 }

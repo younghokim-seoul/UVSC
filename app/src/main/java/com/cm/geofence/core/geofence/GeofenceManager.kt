@@ -10,6 +10,7 @@ import com.google.android.gms.location.Geofence.GEOFENCE_TRANSITION_ENTER
 import com.google.android.gms.location.GeofencingRequest
 import com.google.android.gms.location.LocationServices
 import dagger.hilt.android.qualifiers.ApplicationContext
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -51,6 +52,7 @@ class GeofenceManager @Inject constructor(
 
     @SuppressLint("MissingPermission")
     suspend fun execute() {
+        Timber.i("execute: geofenceList size = ${geofenceList.size}")
         val geofencingRequest = GeofencingRequest.Builder().apply {
             setInitialTrigger(GEOFENCE_TRANSITION_ENTER)
             addGeofences(geofenceList.values.toList())

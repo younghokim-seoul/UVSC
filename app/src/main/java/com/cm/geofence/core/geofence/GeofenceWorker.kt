@@ -1,6 +1,9 @@
 package com.cm.geofence.core.geofence
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.Data
@@ -8,17 +11,20 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.cm.geofence.core.notification.NotificationHelper
 import com.google.android.gms.location.Geofence
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.coroutineScope
 import timber.log.Timber
 import java.util.UUID
+import javax.inject.Inject
 
 @HiltWorker
 class GeofenceWorker @AssistedInject constructor(
     @Assisted applicationContext: Context,
     @Assisted workerParams: WorkerParameters,
+    private val notificationHelper: NotificationHelper
 ) : CoroutineWorker(applicationContext, workerParams) {
 
     companion object {
@@ -42,6 +48,7 @@ class GeofenceWorker @AssistedInject constructor(
         }
     }
 
+    @SuppressLint("MissingPermission")
     override suspend fun doWork(): Result = coroutineScope {
         Timber.i("[GeofenceWorker] doWork() called")
         try {
@@ -54,30 +61,48 @@ class GeofenceWorker @AssistedInject constructor(
             }
 
             geofenceIds.forEach { id ->
-                when (transitionType) {
+                val title = "Geofence Event"
+                val message = when (transitionType) {
                     Geofence.GEOFENCE_TRANSITION_ENTER -> {
                         Timber.d("ENTER event for $id")
-                        // TODO: 상태를 'ENTERING'으로 변경하거나, 가벼운 진입 로그 전송
+                        "You have entered geofence $id"
                     }
 
                     Geofence.GEOFENCE_TRANSITION_DWELL -> {
                         Timber.d("DWELL event for $id")
-                        // TODO: '골프장 입장'으로 최종 확정. 환영 알림 표시 및 핵심 기능 활성화
+                        "You are dwelling in geofence $id"
                     }
 
                     Geofence.GEOFENCE_TRANSITION_EXIT -> {
                         Timber.d("EXIT event for $id")
-                        // TODO: '골프장 퇴장' 처리. 관련 기능 비활성화
+                        "You have exited geofence $id"
                     }
 
                     else -> {
                         Timber.w("Unknown transition type: $transitionType")
+                        "Unknown geofence event"
                     }
+                }
+                if (ContextCompat.checkSelfPermission(
+                        applicationContext,
+                        android.Manifest.permission.POST_NOTIFICATIONS
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    Timber.e("POST_NOTIFICATIONS permission granted." + notificationHelper)
+                    notificationHelper.show(
+                        notificationId = id.hashCode(),
+                        title = title,
+                        message = message,
+                        smallIcon = android.R.drawable.ic_dialog_info
+                    )
+                } else {
+                    Timber.e("POST_NOTIFICATIONS permission not granted.")
                 }
             }
 
             Result.success()
         } catch (e: Exception) {
+            Timber.e(e, "Error processing geofence event " + e)
             if (runAttemptCount > 3) {
                 Result.success()
             } else {

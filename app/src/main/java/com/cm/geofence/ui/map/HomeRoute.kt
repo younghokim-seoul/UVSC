@@ -6,6 +6,9 @@ import android.widget.ProgressBar
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -27,7 +30,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.cm.geofence.ui.component.MapTopBar
 import com.cm.geofence.utils.checkLocationPermission
+import com.cm.geofence.utils.checkNotificationPermission
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.compose.CameraPositionState
 import com.naver.maps.map.compose.CircleOverlay
@@ -45,23 +51,35 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import timber.log.Timber
 
-val permissionsToRequest = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-    arrayOf(
-        Manifest.permission.ACCESS_COARSE_LOCATION,
-        Manifest.permission.ACCESS_FINE_LOCATION,
-        Manifest.permission.POST_NOTIFICATIONS,
-    )
-} else {
-    arrayOf(
-        Manifest.permission.ACCESS_COARSE_LOCATION,
-        Manifest.permission.ACCESS_FINE_LOCATION,
-    )
+val permissionsToRequest = when {
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
+        arrayOf(
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.POST_NOTIFICATIONS,
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+        )
+    }
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
+        arrayOf(
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+        )
+    }
+    else -> {
+        arrayOf(
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+        )
+    }
 }
 
 @OptIn(ExperimentalNaverMapApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun HomeRoute(
     padding: PaddingValues,
+    mapViewModel: MapViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val activity = LocalActivity.current
@@ -69,6 +87,12 @@ fun HomeRoute(
     var isLocationPermissionsGranted by remember {
         mutableStateOf(
             activity?.checkLocationPermission() ?: false
+        )
+    }
+
+    var isNotificationPermissionGranted by remember {
+        mutableStateOf(
+            activity?.checkNotificationPermission() ?: false
         )
     }
 
@@ -82,34 +106,44 @@ fun HomeRoute(
             }
     }
 
+    LaunchedEffect(Unit) {
+        snapshotFlow { activity?.checkNotificationPermission() }
+            .distinctUntilChanged()
+            .collect { isGranted ->
+                if (isGranted != null) {
+                    isNotificationPermissionGranted = isGranted
+                }
+            }
+    }
+
     val permissionResultLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
         onResult = { permissions ->
             permissionsToRequest.forEach { permission ->
                 when (permission) {
-                    Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION -> {
+                    Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION , Manifest.permission.ACCESS_BACKGROUND_LOCATION -> {
                         isLocationPermissionsGranted = permissions[permission] == true
                     }
+
+                    Manifest.permission.POST_NOTIFICATIONS -> {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            isNotificationPermissionGranted = permissions[permission] == true
+                        }
+                    }
                 }
+
             }
         },
     )
 
-    if (isLocationPermissionsGranted.not()) {
-        MapLoading()
-    }
+
 
     MapScreen(padding = padding)
 
 
 }
 
-@Composable
-private fun MapLoading() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
-    }
-}
+
 
 @ExperimentalNaverMapApi
 @ExperimentalFoundationApi
@@ -118,15 +152,18 @@ internal fun MapScreen(
     padding: PaddingValues
 ) {
     val cameraPositionState = rememberCameraPositionState()
+    var isCameraMoving by remember { mutableStateOf(false) }
 
     LaunchedEffect(cameraPositionState) {
         snapshotFlow { cameraPositionState.isMoving }
             .distinctUntilChanged()
-            .filter { it.not() }
-            .collect {
-                Timber.d(
-                    "## cameraPositionState, ${cameraPositionState.position.target.latitude}, ${cameraPositionState.position.target.longitude}"
-                )
+            .collect { 
+                isCameraMoving = it
+                if (!it) {
+                    Timber.d(
+                        "## cameraPositionState, ${cameraPositionState.position.target.latitude}, ${cameraPositionState.position.target.longitude}"
+                    )
+                }
             }
     }
 
@@ -139,6 +176,7 @@ internal fun MapScreen(
     ) {
         MapContent(
             cameraPositionState = cameraPositionState,
+            isCameraMoving = isCameraMoving,
         )
     }
 
@@ -148,6 +186,7 @@ internal fun MapScreen(
 @Composable
 internal fun MapContent(
     cameraPositionState: CameraPositionState,
+    isCameraMoving: Boolean,
 ) {
     Box {
         NaverMap(
@@ -164,7 +203,17 @@ internal fun MapContent(
             ),
             locationSource = rememberFusedLocationSource(),
 
-        ) {
+            ) {
+
+            CircleOverlay(
+                center = LatLng(37.558948, 127.035811),
+                radius = 2000.0,
+                color = Color.Blue.copy(alpha = 0.2f),
+                outlineColor = Color.Blue,
+                outlineWidth = 2.dp,
+            )
+
+
             CircleOverlay(
                 center = LatLng(37.5716, 126.9763),
                 radius = 150.0,
@@ -178,6 +227,15 @@ internal fun MapContent(
                 icon = MarkerIcons.BLACK,
                 iconTintColor = Color.Red,
             )
+        }
+
+
+        AnimatedVisibility(
+            visible = !isCameraMoving,
+            enter = slideInVertically(initialOffsetY = { -it }),
+            exit = slideOutVertically(targetOffsetY = { -it }),
+        ) {
+            MapTopBar()
         }
     }
 }
