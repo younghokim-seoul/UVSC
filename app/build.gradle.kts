@@ -1,6 +1,8 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -24,23 +26,20 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    val keystoreProperties = Properties().apply {
-        val file = rootProject.file("gradle.properties")
-        if (file.exists()) {
-            load(file.inputStream())
-        } else {
-            println("keystore.properties not found")
-        }
-    }
-
     signingConfigs {
         create("release") {
-            storeFile = file("../keystore/uvsc-release.jks")
-            storePassword =
-                keystoreProperties["storePassword"] as? String ?: error("storePassword is null")
-            keyAlias = keystoreProperties["keyAlias"] as? String ?: error("keyAlias is null")
-            keyPassword =
-                keystoreProperties["keyPassword"] as? String ?: error("keyPassword is null")
+            val keystorePropertiesFile = rootProject.file("keystore/keystore.properties")
+            if (keystorePropertiesFile.exists()) {
+                val properties = Properties()
+                properties.load(FileInputStream(keystorePropertiesFile))
+
+                storeFile = rootProject.file("keystore/uvsc.jks")
+                storePassword = properties.getProperty("storePassword")
+                keyAlias = properties.getProperty("keyAlias")
+                keyPassword = properties.getProperty("keyPassword")
+            } else {
+                println("Keystore properties file not found.")
+            }
         }
     }
 
