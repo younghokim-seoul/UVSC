@@ -60,7 +60,8 @@ internal fun MainNavHost(
                 ReceiveRoute(
                     padding = padding,
                     dataList = dataList,
-                    onCheckedChange = viewModel::toggleReceiveDataChecked
+                    onCheckedChange = viewModel::toggleReceiveDataChecked,
+                    onSendClick = viewModel::onSendPacketClick
                 )
             }
         }

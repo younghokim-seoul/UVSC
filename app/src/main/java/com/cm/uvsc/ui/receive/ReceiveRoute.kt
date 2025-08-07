@@ -22,6 +22,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,8 +41,11 @@ import com.cm.uvsc.ui.theme.USCVColor
 fun ReceiveRoute(
     padding: PaddingValues,
     dataList: List<ReceiveData>,
-    onCheckedChange: (String) -> Unit
+    onCheckedChange: (String) -> Unit,
+    onSendClick: (String) -> Unit
 ) {
+    var inputText by remember { mutableStateOf("") }
+
     Column(
         modifier = Modifier
             .padding(padding)
@@ -56,7 +63,11 @@ fun ReceiveRoute(
                 )
             }
         }
-        MessageInputSection(text = "", onTextChange = {}, onSendClick = {})
+        PacketInputSection(
+            inputText = inputText,
+            onTextChange = { inputText = it },
+            onSendClick = onSendClick
+        )
     }
 }
 
@@ -126,10 +137,10 @@ fun ReceiveTableRow(
 }
 
 @Composable
-fun MessageInputSection(
-    text: String,
+fun PacketInputSection(
+    inputText: String,
     onTextChange: (String) -> Unit,
-    onSendClick: () -> Unit
+    onSendClick: (String) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -138,7 +149,7 @@ fun MessageInputSection(
         verticalAlignment = Alignment.CenterVertically
     ) {
         OutlinedTextField(
-            value = text,
+            value = inputText,
             onValueChange = onTextChange,
             modifier = Modifier
                 .weight(1f)
@@ -156,7 +167,7 @@ fun MessageInputSection(
         )
 
         Button(
-            onClick = onSendClick,
+            onClick = { onSendClick(inputText) },
             colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
             modifier = Modifier.height(56.dp),
             shape = RoundedCornerShape(16.dp)
@@ -185,6 +196,7 @@ fun PreviewReceiveRoute() {
                 isChecked = true
             )
         ),
-        onCheckedChange = {}
+        onCheckedChange = {},
+        onSendClick = {}
     )
 }
