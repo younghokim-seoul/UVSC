@@ -357,8 +357,4 @@ class MainViewModel @Inject constructor(
         _receiveDataList.value = emptyList()
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        disconnect()
-    }
 }
