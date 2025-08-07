@@ -345,4 +345,9 @@ class MainViewModel @Inject constructor(
         _uvscHistoryList.value = emptyList()
         _receiveDataList.value = emptyList()
     }
+
+    override fun onCleared() {
+        super.onCleared()
+        disconnect()
+    }
 }

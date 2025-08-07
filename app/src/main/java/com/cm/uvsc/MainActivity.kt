@@ -110,7 +110,7 @@ class MainActivity : ComponentActivity() {
                             Toast.makeText(this@MainActivity, "모드 변경이 완료되었습니다", Toast.LENGTH_LONG)
                                 .show()
                         } else {
-                            Toast.makeText(this@MainActivity, "모드 변경에 실패했습니다.", Toast.LENGTH_LONG)
+                            Toast.makeText(this@MainActivity, "모드 변경에 실패했습니다", Toast.LENGTH_LONG)
                                 .show()
                         }
                     }
