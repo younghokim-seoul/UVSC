@@ -336,6 +336,10 @@ class MainViewModel @Inject constructor(
         _searchQuery.value = query
     }
 
+    fun onSendPacketClick(packet: String) = viewModelScope.launch {
+        bleRepository.sendDynamicPacket(packet)
+    }
+
     fun connectDevice(device: RxBleDevice) {
         bleRepository.connect(device)
     }
