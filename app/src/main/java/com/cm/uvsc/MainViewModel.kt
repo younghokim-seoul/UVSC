@@ -6,6 +6,7 @@ import com.cm.uvsc.ble.AchPacket
 import com.cm.uvsc.ble.AchsPacket
 import com.cm.uvsc.ble.AchtPacket
 import com.cm.uvsc.ble.AcsPacket
+import com.cm.uvsc.ble.AcsPacket.ModeChange.ModeType
 import com.cm.uvsc.ble.BleRepository
 import com.cm.uvsc.ble.ReceivePacket
 import com.cm.uvsc.ble.SetChargeMode
@@ -18,7 +19,6 @@ import com.cm.uvsc.ui.history.UvscHistory
 import com.cm.uvsc.ui.home.HomeUiState
 import com.cm.uvsc.ui.home.UvscInfo
 import com.cm.uvsc.ui.home.emptyCharging
-import com.cm.uvsc.ui.home.toCharging
 import com.cm.uvsc.ui.home.toUvscInProgress
 import com.cm.uvsc.ui.receive.ReceiveData
 import com.cm.uvsc.ui.receive.ReceiveScanResult
@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -88,6 +89,8 @@ class MainViewModel @Inject constructor(
     private val _uiEvent = MutableSharedFlow<UiEvent>()
     val uiEvent = _uiEvent.asSharedFlow()
 
+    private var modeType: ModeType = ModeType.Charging
+
     init {
         Timber.i("bleRepository => $bleRepository")
         observeConnectionState()
@@ -123,8 +126,13 @@ class MainViewModel @Inject constructor(
     private fun observeHomePacket() {
         val homeFlow = bleRepository.latestPacketsMap
 
-        homeFlow
-            .acsPackets()
+        homeFlow.acsPackets()
+            .filterIsInstance<AcsPacket.ModeChange>()
+            .onEach { updateAcsMode(it) }
+            .launchIn(viewModelScope)
+
+        homeFlow.acsPackets()
+            .filterIsInstance<AcsPacket.Progress>()
             .onEach { updateUiStateFromAcs(it) }
             .launchIn(viewModelScope)
 
@@ -139,30 +147,19 @@ class MainViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    private fun updateUiStateFromAcs(packet: AcsPacket) {
-        Timber.i("Received ACS packet: $packet")
-        val value = packet.valueAsString.toIntOrNull() ?: return
-        val info = _homeUiState.value as? UvscInfo
-
+    private fun updateUiStateFromAcs(packet: AcsPacket.Progress) {
         _homeUiState.update { state ->
-            when {
-                value == 200 -> {
-                    info.toUvscInProgress(0)
+            val info = state as? UvscInfo
+
+            when (modeType) {
+                ModeType.Charging -> {
+                    state
                 }
 
-                value >= 1000 -> {
-                    val minutes = value - 1000
-                    when (state) {
-                        is HomeUiState.UvscInProgress -> state.copy(progressTime = minutes)
-                        else -> info.toUvscInProgress(minutes)
-                    }
+                ModeType.UvscInProgress -> {
+                    val value = packet.valueAsString.toIntOrNull() ?: return
+                    info.toUvscInProgress(value)
                 }
-
-                value == 100 || value == -100 -> {
-                    info.toCharging()
-                }
-
-                else -> state
             }
         }
     }
@@ -228,6 +225,10 @@ class MainViewModel @Inject constructor(
         if (!isSuccess) {
             Timber.w("BLE response not received for $packet after retry")
         }
+    }
+
+    private fun updateAcsMode(packet: AcsPacket.ModeChange) {
+        modeType = packet.modeType
     }
 
     private fun observeHistoryPacket() =

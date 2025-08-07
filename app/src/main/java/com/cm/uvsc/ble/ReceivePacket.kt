@@ -8,9 +8,26 @@ sealed interface ReceivePacket {
 /**
  * "ACS:value" 형태의 패킷
  */
-data class AcsPacket(val value: String) : ReceivePacket {
+sealed class AcsPacket(override val valueAsString: String) : ReceivePacket {
     override val key: String = "ACS"
-    override val valueAsString: String = value
+
+    class ModeChange(value: String, val modeType: ModeType) : AcsPacket(value) {
+        enum class ModeType() {
+            Charging, UvscInProgress
+        }
+    }
+
+    data class Progress(override val valueAsString: String) : AcsPacket(valueAsString)
+
+    companion object {
+        fun fromValue(value: String): AcsPacket {
+            return when (value.toIntOrNull() ?: 0) {
+                100, -100 -> ModeChange(value, ModeChange.ModeType.Charging)
+                200 -> ModeChange(value, ModeChange.ModeType.UvscInProgress)
+                else -> Progress(value)
+            }
+        }
+    }
 }
 
 /**

@@ -12,7 +12,7 @@ object PacketParser {
         val value = parts.getOrNull(1) ?: ""
 
         return when (key) {
-            "ACS" -> AcsPacket(value.trim())
+            "ACS" -> AcsPacket.fromValue(value.trim())
             "ACHT" -> AchtPacket(value.trim())
             "ACHS" -> AchsPacket(value.trim())
             "UVTime" -> UVTimePacket(value.trim())
