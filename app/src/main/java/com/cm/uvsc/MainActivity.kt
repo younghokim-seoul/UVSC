@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.runtime.collectAsState
@@ -34,6 +35,7 @@ class MainActivity : ComponentActivity() {
         checkPermissions()
         WindowCompat.setDecorFitsSystemWindows(window, false)
         collectEvent()
+        setupBackPressedCallback()
 
         setContent {
             val navigator: MainNavigator = rememberMainNavigator()
@@ -127,4 +129,21 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun setupBackPressedCallback() {
+        onBackPressedDispatcher.addCallback(
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    viewModel.disconnect()
+                    finish()
+                }
+            }
+        )
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (isFinishing) {
+            viewModel.disconnect()
+        }
+    }
 }

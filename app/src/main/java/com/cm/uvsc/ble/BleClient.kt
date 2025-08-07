@@ -7,6 +7,7 @@ import com.polidea.rxandroidble3.RxBleConnection
 import com.polidea.rxandroidble3.RxBleDevice
 import com.polidea.rxandroidble3.scan.ScanFilter
 import com.polidea.rxandroidble3.scan.ScanSettings
+import dagger.hilt.android.scopes.ActivityRetainedScoped
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapConcat
@@ -14,10 +15,9 @@ import kotlinx.coroutines.rx3.asFlow
 import kotlinx.coroutines.rx3.await
 import java.util.UUID
 import javax.inject.Inject
-import javax.inject.Singleton
 
 
-@Singleton
+@ActivityRetainedScoped
 class BleClient @Inject constructor(
     private val rxBleClient: RxBleClient
 ) {

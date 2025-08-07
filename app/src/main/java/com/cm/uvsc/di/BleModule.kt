@@ -1,32 +1,29 @@
 package com.cm.uvsc.di
 
 import android.content.Context
-import com.cm.uvsc.ble.BleClient
-import com.cm.uvsc.ble.BleRepository
 import com.polidea.rxandroidble3.RxBleClient
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.components.ActivityRetainedComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
+import dagger.hilt.android.scopes.ActivityRetainedScoped
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import javax.inject.Qualifier
-import javax.inject.Singleton
 
 
 @Module
-@InstallIn(SingletonComponent::class)
+@InstallIn(ActivityRetainedComponent::class)
 object BleModule {
 
     @Provides
-    @Singleton
+    @ActivityRetainedScoped
     fun provideRxBle(@ApplicationContext context: Context): RxBleClient = RxBleClient.create(context)
 
-    @ApplicationScope
     @Provides
-    @Singleton
+    @ActivityRetainedScoped
     fun provideCoroutineScope(): CoroutineScope {
         return CoroutineScope(SupervisorJob() + Dispatchers.Default)
     }

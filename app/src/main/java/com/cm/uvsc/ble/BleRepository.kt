@@ -2,11 +2,11 @@
 
 package com.cm.uvsc.ble
 
-import com.cm.uvsc.di.ApplicationScope
 import com.cm.uvsc.util.asDateString
 import com.cm.uvsc.util.now
 import com.polidea.rxandroidble3.RxBleConnection
 import com.polidea.rxandroidble3.RxBleDevice
+import dagger.hilt.android.scopes.ActivityRetainedScoped
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -28,12 +28,11 @@ import kotlinx.datetime.LocalDateTime
 import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
+@ActivityRetainedScoped
 class BleRepository @Inject constructor(
     private val bleClient: BleClient,
-    @ApplicationScope private val externalScope: CoroutineScope
+    private val externalScope: CoroutineScope
 ) {
 
     private var _scanJob: Job? = null
