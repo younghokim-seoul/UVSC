@@ -102,7 +102,7 @@ fun NoDeviceView() {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "검색된 기기가 없습니다",
+            text = "기기 정보가 없습니다",
             fontSize = 16.sp,
             color = USCVColor.Gray
         )
