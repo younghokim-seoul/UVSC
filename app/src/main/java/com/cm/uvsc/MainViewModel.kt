@@ -172,13 +172,12 @@ class MainViewModel @Inject constructor(
 
         _homeUiState.update { state ->
             when (state) {
-                is HomeUiState.UvscInProgress -> {
+                is HomeUiState.Charging -> {
                     state.copy(recentUvscTime = value)
                 }
 
-                else -> {
-                    val info = state as? UvscInfo
-                    info.toUvscInProgress(recentUvscTime = value)
+                is HomeUiState.UvscInProgress -> {
+                    state.copy(recentUvscTime = value)
                 }
             }
         }
@@ -197,20 +196,17 @@ class MainViewModel @Inject constructor(
 
         _homeUiState.update { state ->
             when (state) {
-                is HomeUiState.UvscInProgress -> state.copy(
+                is HomeUiState.Charging -> state.copy(
                     uvscTime = time,
                     uvscResult = result,
                     expectedTime = expected
                 )
 
-                else -> {
-                    val info = state as? UvscInfo
-                    info.toUvscInProgress(
-                        uvscTime = time,
-                        uvscResult = result,
-                        expectedTime = expected
-                    )
-                }
+                is HomeUiState.UvscInProgress -> state.copy(
+                    uvscTime = time,
+                    uvscResult = result,
+                    expectedTime = expected
+                )
             }
         }
     }
