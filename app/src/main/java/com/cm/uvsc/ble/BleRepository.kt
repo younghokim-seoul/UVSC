@@ -11,23 +11,18 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlinx.datetime.LocalDateTime
 import timber.log.Timber
@@ -40,78 +35,26 @@ class BleRepository @Inject constructor(
     private val bleClient: BleClient,
     @ApplicationScope private val externalScope: CoroutineScope
 ) {
-    private val _targetDevice = MutableSharedFlow<RxBleDevice?>(replay = 1)
 
     private var _scanJob: Job? = null
+    private var connectionJob: Job? = null
 
-    private var _lastSuccessfullyConnectedDevice: RxBleDevice? = null
+    private val _connection = MutableStateFlow<Pair<RxBleDevice?, RxBleConnection?>>(null to null)
 
     private val _latestPacketsMap = MutableStateFlow<Map<String, ReceivePacket>>(emptyMap())
-    val latestPacketsMap: StateFlow<Map<String, ReceivePacket>> = _latestPacketsMap
+    val latestPacketsMap: StateFlow<Map<String, ReceivePacket>> = _latestPacketsMap.asStateFlow()
 
     private val _scannedDevicesSet = MutableStateFlow<Set<RxBleDevice>>(emptySet())
-    val scannedDevices: StateFlow<Set<RxBleDevice>> = _scannedDevicesSet
+    val scannedDevices: StateFlow<Set<RxBleDevice>> = _scannedDevicesSet.asStateFlow()
 
 
-    private val _connection: SharedFlow<Pair<RxBleDevice, RxBleConnection>> = _targetDevice
-        .flatMapLatest { device ->
-            device?.let { bleClient.connect(it).map { connection -> device to connection } }
-                ?: emptyFlow()
-        }
-        .onEach { (device, _) ->
-            _lastSuccessfullyConnectedDevice = device
-        }
-        .catch { e -> Timber.e(e, "Connection stream failed") }
-        .shareIn(externalScope, SharingStarted.WhileSubscribed(5000), 1)
+    private val _connectionState =
+        MutableStateFlow(RxBleConnection.RxBleConnectionState.DISCONNECTED)
+    val connectionState: StateFlow<RxBleConnection.RxBleConnectionState> =
+        _connectionState.asStateFlow()
 
-    private val _connectionState: StateFlow<RxBleConnection.RxBleConnectionState?> = _targetDevice
-        .flatMapLatest { device ->
-            device?.let { bleClient.connectionStateFlow(it) } ?: flowOf(null)
-        }
-        .stateIn(externalScope, SharingStarted.WhileSubscribed(5000), null)
-    val connectionState: StateFlow<RxBleConnection.RxBleConnectionState?> = _connectionState
 
-    init {
-        _connectionState.onEach { state ->
-            Timber.i("RxBleConnectionState $state")
-            when (state) {
-                RxBleConnection.RxBleConnectionState.CONNECTED -> {
-                    sendToRetry(SetUVTime(nowDate = LocalDateTime.now().asDateString()))
-                }
-
-                RxBleConnection.RxBleConnectionState.DISCONNECTED -> {
-                    resetPacket()
-                    _lastSuccessfullyConnectedDevice?.let { deviceToReconnect ->
-                        Timber.d("attempting auto-reconnect...")
-                        connect(deviceToReconnect)
-                    }
-
-                }
-
-                else -> {}
-            }
-        }.launchIn(externalScope)
-
-        _connection
-            .flatMapLatest { (_, connection) ->
-                bleClient.getNotificationFlow(
-                    connection,
-                    UUID.fromString(BleClient.CHARACTERISTIC_UUID)
-                )
-                    .filter { rawBytes -> rawBytes.isPureAsciiText() }
-                    .map { bytes -> PacketParser.parse(String(bytes, Charsets.US_ASCII)) }
-            }
-            .onEach { newPacket ->
-                _latestPacketsMap.update { currentMap ->
-                    currentMap + (newPacket.key to newPacket)
-                }
-                Timber.d("Packet received & map updated: $newPacket")
-            }
-            .catch { e -> Timber.e(e, "Notification processing error") }
-            .launchIn(externalScope)
-    }
-
-    suspend fun sendDynamicPacket(data : String) : Boolean {
+    suspend fun sendDynamicPacket(data: String): Boolean {
         if (_connectionState.value != RxBleConnection.RxBleConnectionState.CONNECTED) {
             Timber.w("Cannot send data: Not connected.")
             return false
@@ -183,18 +126,73 @@ class BleRepository @Inject constructor(
 
     fun connect(device: RxBleDevice) {
         Timber.d("Connecting to device: ${device.macAddress}")
-        _targetDevice.tryEmit(device)
+
+        _connection.value = device to null
+
+        connectionJob?.cancel()
+
+        connectionJob = externalScope.launch {
+
+            launch {
+                bleClient.connectionStateFlow(device).onEach { state ->
+                    Timber.d("Connection state: $state")
+                    when (state) {
+                        RxBleConnection.RxBleConnectionState.CONNECTED -> {
+                            _connectionState.value = state
+                            sendToRetry(SetUVTime(nowDate = LocalDateTime.now().asDateString()))
+                        }
+
+                        RxBleConnection.RxBleConnectionState.DISCONNECTED -> {
+                            Timber.i("Disconnected from device: ${  _connection.value}")
+                            resetPacket()
+                            _connection.value.first?.let { deviceToReconnect ->
+                                Timber.d("attempting auto-reconnect...")
+                                connect(deviceToReconnect)
+                            }
+
+                            _connectionState.value = RxBleConnection.RxBleConnectionState.DISCONNECTED
+
+                        }
+
+                        else -> {}
+                    }
+                }.launchIn(this)
+            }
+
+            bleClient.connect(device)
+                .flatMapLatest { connection ->
+                    _connection.value = device to connection
+
+                    bleClient.getNotificationFlow(
+                        connection,
+                        UUID.fromString(BleClient.CHARACTERISTIC_UUID)
+                    )
+                        .filter { rawBytes -> rawBytes.isPureAsciiText() }
+                        .map { bytes -> PacketParser.parse(String(bytes, Charsets.US_ASCII)) }
+                }
+                .onEach { newPacket ->
+                    _latestPacketsMap.update { currentMap ->
+                        currentMap + (newPacket.key to newPacket)
+                    }
+                    Timber.d("Packet received & map updated: $newPacket")
+                }
+                .catch { e ->
+                    Timber.e(e, "Connection failed during connect")
+                    _connection.value = null to null
+                }
+                .launchIn(this)
+        }
     }
 
     fun disconnect() {
-        Timber.d("Disconnecting...")
-        _lastSuccessfullyConnectedDevice = null
-        _targetDevice.tryEmit(null)
+        Timber.d("force Disconnecting...")
+        _connection.value = null to null
+        connectionJob?.cancel()
     }
 
     private suspend fun sendData(data: ByteArray): Boolean {
         return try {
-            bleClient.send(_connection.first().second, data)
+            bleClient.send(_connection.value.second!!, data)
             true
         } catch (e: Exception) {
             Timber.e(e, "Single send failed")
