@@ -19,6 +19,7 @@ import com.cm.uvsc.ui.history.UvscHistory
 import com.cm.uvsc.ui.home.HomeUiState
 import com.cm.uvsc.ui.home.UvscInfo
 import com.cm.uvsc.ui.home.emptyCharging
+import com.cm.uvsc.ui.home.toCharging
 import com.cm.uvsc.ui.home.toUvscInProgress
 import com.cm.uvsc.ui.receive.ReceiveData
 import com.cm.uvsc.ui.receive.ReceiveScanResult
@@ -128,12 +129,12 @@ class MainViewModel @Inject constructor(
 
         homeFlow.acsPackets()
             .filterIsInstance<AcsPacket.ModeChange>()
-            .onEach { updateAcsMode(it) }
+            .onEach { updateUiStateFromAcs(it) }
             .launchIn(viewModelScope)
 
         homeFlow.acsPackets()
             .filterIsInstance<AcsPacket.Progress>()
-            .onEach { updateUiStateFromAcs(it) }
+            .onEach { updateUvscProgress(it) }
             .launchIn(viewModelScope)
 
         homeFlow
@@ -147,7 +148,7 @@ class MainViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    private fun updateUiStateFromAcs(packet: AcsPacket.Progress) {
+    private fun updateUvscProgress(packet: AcsPacket.Progress) {
         _homeUiState.update { state ->
             val info = state as? UvscInfo
 
@@ -157,8 +158,9 @@ class MainViewModel @Inject constructor(
                 }
 
                 ModeType.UvscInProgress -> {
-                    val value = packet.valueAsString.toIntOrNull() ?: return
-                    info.toUvscInProgress(value)
+                    val value = packet.valueAsString.toIntOrNull() ?: 1000
+                    val minutes = value - 1000
+                    info.toUvscInProgress(minutes)
                 }
             }
         }
@@ -221,14 +223,22 @@ class MainViewModel @Inject constructor(
 
     private suspend fun retryUntilReceive(packet: SetChargeMode) {
         val isSuccess = bleRepository.sendToRetry(data = packet)
-        _uiEvent.emit(UiEvent.ModeChanged(isSuccess = isSuccess))
+        _uiEvent.emit(UiEvent.ModeChangedResult(isSuccess = isSuccess))
         if (!isSuccess) {
             Timber.w("BLE response not received for $packet after retry")
         }
     }
 
-    private fun updateAcsMode(packet: AcsPacket.ModeChange) {
+    private fun updateUiStateFromAcs(packet: AcsPacket.ModeChange) {
         modeType = packet.modeType
+
+        _homeUiState.update { state ->
+            val info = state as? UvscInfo
+            when (packet.modeType) {
+                ModeType.Charging -> info.toCharging()
+                ModeType.UvscInProgress -> info.toUvscInProgress()
+            }
+        }
     }
 
     private fun observeHistoryPacket() =
@@ -337,7 +347,8 @@ class MainViewModel @Inject constructor(
     }
 
     fun onSendPacketClick(packet: String) = viewModelScope.launch {
-        bleRepository.sendDynamicPacket(packet)
+        val isSuccess = bleRepository.sendDynamicPacket(packet)
+        _uiEvent.emit(UiEvent.SendPacketResult(isSuccess))
     }
 
     fun connectDevice(device: RxBleDevice) {

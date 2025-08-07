@@ -105,7 +105,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             viewModel.uiEvent.collect {
                 when (it) {
-                    is UiEvent.ModeChanged -> {
+                    is UiEvent.ModeChangedResult -> {
                         if (it.isSuccess) {
                             Toast.makeText(this@MainActivity, "모드 변경이 완료되었습니다", Toast.LENGTH_LONG)
                                 .show()
@@ -119,6 +119,14 @@ class MainActivity : ComponentActivity() {
                         Toast.makeText(
                             this@MainActivity,
                             "장치 연결 ${if (it.isSuccess) "성공" else "실패"}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+
+                    is UiEvent.SendPacketResult -> {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "패킷 전송 ${if (it.isSuccess) "성공" else "실패"}",
                             Toast.LENGTH_LONG
                         ).show()
                     }
