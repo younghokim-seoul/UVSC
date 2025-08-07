@@ -115,14 +115,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    is UiEvent.ConnectResult -> {
-                        Toast.makeText(
-                            this@MainActivity,
-                            "장치 연결 ${if (it.isSuccess) "성공" else "실패"}",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-
                     is UiEvent.SendPacketResult -> {
                         Toast.makeText(
                             this@MainActivity,
