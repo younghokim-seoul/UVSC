@@ -111,6 +111,15 @@ class BleRepository @Inject constructor(
             .launchIn(externalScope)
     }
 
+    suspend fun sendDynamicPacket(data : String) : Boolean {
+        if (_connectionState.value != RxBleConnection.RxBleConnectionState.CONNECTED) {
+            Timber.w("Cannot send data: Not connected.")
+            return false
+        }
+        val sendSuccess = sendData(data.toByteArray(Charsets.US_ASCII))
+        return sendSuccess
+    }
+
     suspend fun sendToRetry(
         data: SendPacket,
         retryCount: Int = 5,
