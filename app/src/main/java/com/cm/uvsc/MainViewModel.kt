@@ -249,7 +249,7 @@ class MainViewModel @Inject constructor(
         val parts = packet.valueAsString.splitTrimmed()
 
         val index = parts.getOrNull(0)?.toIntOrNull() ?: 0
-        val date = parts.getOrNull(1) ?: "-"
+        val date = normalizeDate(parts.getOrNull(1))
         val time = parts.getOrNull(2) ?: "-"
         val result = parts.getOrNull(3) ?: "-"
         val note = parts.getOrNull(4) ?: ""
@@ -263,8 +263,9 @@ class MainViewModel @Inject constructor(
         )
 
         _uvscHistoryList.update { current ->
-            (current + entry)
-                .sortedByDescending { it.index }
+            (listOf(entry) + current)
+                .distinctBy { it.date to it.index }
+                .sortedWith(compareByDescending<UvscHistory> { it.date }.thenByDescending { it.index })
                 .take(10)
         }
     }
@@ -359,4 +360,17 @@ class MainViewModel @Inject constructor(
         _receiveDataList.value = emptyList()
     }
 
+    private fun normalizeDate(raw: String?): String {
+        if (raw.isNullOrBlank()) {
+            return "-"
+        }
+
+        val match = Regex("""\d{4}-\d{2}-\d{2}""").find(raw)
+        return if (match != null) {
+            match.value
+        } else {
+            Timber.w("Invalid date format: $raw, replaced with '-'")
+            "-"
+        }
+    }
 }
