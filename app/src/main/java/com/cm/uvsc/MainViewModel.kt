@@ -21,12 +21,14 @@ import com.cm.uvsc.ui.home.UvscInfo
 import com.cm.uvsc.ui.home.emptyCharging
 import com.cm.uvsc.ui.home.toCharging
 import com.cm.uvsc.ui.home.toUvscInProgress
+import com.cm.uvsc.ui.home.withAchs
 import com.cm.uvsc.ui.receive.ReceiveData
 import com.cm.uvsc.ui.receive.ReceiveScanResult
 import com.cm.uvsc.util.achPackets
 import com.cm.uvsc.util.achsPackets
 import com.cm.uvsc.util.achtPackets
 import com.cm.uvsc.util.acsPackets
+import com.cm.uvsc.util.normalizeDate
 import com.cm.uvsc.util.splitTrimmed
 import com.polidea.rxandroidble3.RxBleConnection
 import com.polidea.rxandroidble3.RxBleDevice
@@ -50,6 +52,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 @HiltViewModel
@@ -92,6 +96,7 @@ class MainViewModel @Inject constructor(
     val uiEvent = _uiEvent.asSharedFlow()
 
     private var modeType: ModeType = ModeType.Charging
+    private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
     init {
         Timber.i("bleRepository => $bleRepository")
@@ -169,46 +174,49 @@ class MainViewModel @Inject constructor(
 
     private fun updateUiStateFromAcht(packet: AchtPacket) {
         Timber.i("Received ACHT packet: $packet")
-        val value = packet.valueAsString
+        val newValue = packet.valueAsString
 
         _homeUiState.update { state ->
-            when (state) {
-                is HomeUiState.Charging -> {
-                    state.copy(recentUvscTime = value)
-                }
+            val info = state as? UvscInfo
+            val newDateTime = runCatching { LocalDateTime.parse(newValue, formatter) }.getOrNull()
+            val currentDateTime =
+                runCatching { LocalDateTime.parse(info?.recentUvscTime, formatter) }.getOrNull()
 
-                is HomeUiState.UvscInProgress -> {
-                    state.copy(recentUvscTime = value)
+            if (newDateTime != null
+                && (currentDateTime == null || newDateTime.isAfter(currentDateTime))
+            ) {
+                when (state) {
+                    is HomeUiState.Charging -> state.copy(recentUvscTime = newValue)
+                    is HomeUiState.UvscInProgress -> state.copy(recentUvscTime = newValue)
                 }
+            } else {
+                state
             }
         }
     }
 
     private fun updateUiStateFromAchs(packet: AchsPacket) {
         Timber.i("Received ACSH packet: $packet")
-        val value = packet.valueAsString
-        val (time, result, expected) = value.splitTrimmed().let {
-            Triple(
-                it.getOrNull(0) ?: "-",
-                it.getOrNull(1) ?: "-",
-                it.getOrNull(2) ?: "-"
-            )
+        val (timeStr, resultStr, expectedStr) = packet.valueAsString.splitTrimmed().let {
+            Triple(it.getOrNull(0), it.getOrNull(1), it.getOrNull(2))
         }
 
         _homeUiState.update { state ->
-            when (state) {
-                is HomeUiState.Charging -> state.copy(
-                    uvscTime = time,
-                    uvscResult = result,
-                    expectedTime = expected
-                )
+            val info = state as? UvscInfo
 
-                is HomeUiState.UvscInProgress -> state.copy(
-                    uvscTime = time,
-                    uvscResult = result,
-                    expectedTime = expected
-                )
-            }
+            val curT = info?.uvscTime
+            val curR = info?.uvscResult
+            val curE = info?.expectedTime
+
+            val newT = timeStr?.toIntOrNull()
+            val newR = resultStr?.toIntOrNull()
+            val newE = expectedStr?.toIntOrNull()
+
+            val time  = maxOf(newT ?: 0, curT ?: 0)
+            val result = maxOf(newR ?: 0, curR ?: 0)
+            val expectedTime = maxOf(newE ?: 0, curE ?: 0)
+
+            state.withAchs(time, result, expectedTime)
         }
     }
 

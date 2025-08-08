@@ -93,10 +93,14 @@ fun InfoPanel(info: UvscInfo?, batteryIcon: Int) {
             Column(
                 modifier = Modifier.weight(1f)
             ) {
+                val time = if (info?.uvscTime == null) "-" else info.uvscTime.toString()
+                val result = if (info?.uvscResult == null) "-" else info.uvscResult.toString()
+                val expectedTime = if (info?.expectedTime == null) "-" else info.expectedTime.toString()
+
                 InfoRow(label = "최근 UVSC 시각", value = info?.recentUvscTime ?: "-")
-                InfoRow(label = "UVSC 시간", value = info?.uvscTime ?: "-")
-                InfoRow(label = "UVSC 결과", value = info?.uvscResult ?: "-")
-                InfoRow(label = "예상 유효점등시간", value = info?.expectedTime ?: "-")
+                InfoRow(label = "UVSC 시간", value = time)
+                InfoRow(label = "UVSC 결과", value = result)
+                InfoRow(label = "예상 유효점등시간", value = expectedTime)
             }
             BatteryIcon(batteryIcon)
         }
@@ -142,9 +146,9 @@ fun PreviewHomeRoute() {
     val inProgress = HomeUiState.UvscInProgress(
         progressTime = 5,
         recentUvscTime = "2025.09.08 12:34:56",
-        uvscTime = "25분",
-        uvscResult = "정상",
-        expectedTime = "70분 이상"
+        uvscTime = 25,
+        uvscResult = 100,
+        expectedTime = 70
     )
     HomeRoute(
         padding = PaddingValues(0.dp),

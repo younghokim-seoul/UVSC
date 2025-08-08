@@ -11,9 +11,9 @@ sealed class HomeUiState {
 
     data class Charging(
         override val recentUvscTime: String,
-        override val uvscTime: String,
-        override val uvscResult: String,
-        override val expectedTime: String
+        override val uvscTime: Int?,
+        override val uvscResult: Int?,
+        override val expectedTime: Int?
     ) : HomeUiState(), UvscInfo {
         override val statusText = "충전 중(UVSC 대기)"
         override val controlBtnText = "UVSC 시작"
@@ -22,9 +22,9 @@ sealed class HomeUiState {
     data class UvscInProgress(
         val progressTime: Int,
         override val recentUvscTime: String,
-        override val uvscTime: String,
-        override val uvscResult: String,
-        override val expectedTime: String
+        override val uvscTime: Int?,
+        override val uvscResult: Int?,
+        override val expectedTime: Int?
     ) : HomeUiState(), UvscInfo {
         override val statusText = "UVSC 중(${progressTime}분)"
         override val batteryResId = R.drawable.battery_red
@@ -34,35 +34,36 @@ sealed class HomeUiState {
 
 val emptyCharging = Charging(
     recentUvscTime = "-",
-    uvscTime = "-",
-    uvscResult = "-",
-    expectedTime = "-"
+    uvscTime = null,
+    uvscResult = null,
+    expectedTime = null
 )
 
-fun UvscInfo?.toUvscInProgress(progressTime: Int) = UvscInProgress(
+fun UvscInfo?.toUvscInProgress(progressTime: Int = 0) = UvscInProgress(
     progressTime = progressTime,
     recentUvscTime = this?.recentUvscTime ?: "-",
-    uvscTime = this?.uvscTime ?: "-",
-    uvscResult = this?.uvscResult ?: "-",
-    expectedTime = this?.expectedTime ?: "-"
-)
-
-fun UvscInfo?.toUvscInProgress(
-    progressTime: Int = 0,
-    uvscTime: String = "-",
-    uvscResult: String = "-",
-    expectedTime: String = "-"
-) = UvscInProgress(
-    progressTime = progressTime,
-    recentUvscTime = this?.recentUvscTime ?: "",
-    uvscTime = uvscTime,
-    uvscResult = uvscResult,
-    expectedTime = expectedTime
+    uvscTime = this?.uvscTime,
+    uvscResult = this?.uvscResult,
+    expectedTime = this?.expectedTime
 )
 
 fun UvscInfo?.toCharging() = Charging(
     recentUvscTime = this?.recentUvscTime ?: "-",
-    uvscTime = this?.uvscTime ?: "-",
-    uvscResult = this?.uvscResult ?: "-",
-    expectedTime = this?.expectedTime ?: "-"
+    uvscTime = this?.uvscTime,
+    uvscResult = this?.uvscResult,
+    expectedTime = this?.expectedTime
 )
+
+fun HomeUiState.withAchs(t: Int?, r: Int?, e: Int?): HomeUiState = when (this) {
+    is Charging -> copy(
+        uvscTime = t ?: uvscTime,
+        uvscResult = r ?: uvscResult,
+        expectedTime = e ?: expectedTime
+    )
+
+    is UvscInProgress -> copy(
+        uvscTime = t ?: uvscTime,
+        uvscResult = r ?: uvscResult,
+        expectedTime = e ?: expectedTime
+    )
+}
