@@ -36,7 +36,10 @@ fun USCVRoute(
     ) {
         HistoryTableHeader()
         LazyColumn {
-            itemsIndexed(historyList) { index, item ->
+            itemsIndexed(
+                items = historyList,
+                key = { _, item -> item.index }
+            ) { index, item ->
                 HistoryTableRow(item, index % 2 != 0)
             }
         }
@@ -84,10 +87,34 @@ fun PreviewUSCVRoute() {
     USCVRoute(
         padding = PaddingValues(0.dp),
         historyList = listOf(
-            UvscHistory(index = 1, date = "2025.09.08", time = "12:34:56", result = "정상", note = "특이사항 없음"),
-            UvscHistory(index = 2, date = "2025.09.07", time = "11:30:00", result = "비정상", note = "배터리 부족"),
-            UvscHistory(index = 3, date = "2025.09.06", time = "10:15:30", result = "정상", note = "정상 작동"),
-            UvscHistory(index = 4, date = "2025.09.05", time = "09:45:20", result = "정상", note = "정상 작동")
+            UvscHistory(
+                index = 1,
+                date = "2025.09.08",
+                time = "12:34:56",
+                result = "정상",
+                note = "특이사항 없음"
+            ),
+            UvscHistory(
+                index = 2,
+                date = "2025.09.07",
+                time = "11:30:00",
+                result = "비정상",
+                note = "배터리 부족"
+            ),
+            UvscHistory(
+                index = 3,
+                date = "2025.09.06",
+                time = "10:15:30",
+                result = "정상",
+                note = "정상 작동"
+            ),
+            UvscHistory(
+                index = 4,
+                date = "2025.09.05",
+                time = "09:45:20",
+                result = "정상",
+                note = "정상 작동"
+            )
         )
     )
 }
