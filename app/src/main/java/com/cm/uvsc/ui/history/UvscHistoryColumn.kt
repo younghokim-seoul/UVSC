@@ -9,22 +9,22 @@ sealed interface UvscHistoryColumn {
 
     data object Date : UvscHistoryColumn {
         override val title = "UVSC 일자"
-        override fun getValue(history: UvscHistory) = history.date
+        override fun getValue(history: UvscHistory) = history.date ?: "-"
     }
 
     data object Time : UvscHistoryColumn {
         override val title = "UVSC 시간"
-        override fun getValue(history: UvscHistory) = history.time
+        override fun getValue(history: UvscHistory) = history.time?.toString() ?: "-"
     }
 
     data object Result : UvscHistoryColumn {
         override val title = "UVSC 결과"
-        override fun getValue(history: UvscHistory) = history.result
+        override fun getValue(history: UvscHistory) = history.result ?: "-"
     }
 
     data object Note : UvscHistoryColumn {
         override val title = "비고"
-        override fun getValue(history: UvscHistory) = history.note
+        override fun getValue(history: UvscHistory) = history.note ?: "-"
     }
 
     companion object {

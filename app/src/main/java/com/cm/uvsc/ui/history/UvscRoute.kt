@@ -38,7 +38,7 @@ fun USCVRoute(
         LazyColumn {
             itemsIndexed(
                 items = historyList,
-                key = { _, item -> item.index }
+                key = { _, item -> item.date + item.time.toString() }
             ) { index, item ->
                 HistoryTableRow(item, index % 2 != 0)
             }
@@ -90,28 +90,28 @@ fun PreviewUSCVRoute() {
             UvscHistory(
                 index = 1,
                 date = "2025.09.08",
-                time = "12:34:56",
+                time = 25480,
                 result = "정상",
                 note = "특이사항 없음"
             ),
             UvscHistory(
                 index = 2,
                 date = "2025.09.07",
-                time = "11:30:00",
+                time = 25480,
                 result = "비정상",
                 note = "배터리 부족"
             ),
             UvscHistory(
                 index = 3,
                 date = "2025.09.06",
-                time = "10:15:30",
+                time = 25480,
                 result = "정상",
                 note = "정상 작동"
             ),
             UvscHistory(
                 index = 4,
                 date = "2025.09.05",
-                time = "09:45:20",
+                time = 25480,
                 result = "정상",
                 note = "정상 작동"
             )

@@ -47,14 +47,6 @@ fun UvscInfo?.toUvscInProgress(progressTime: Int) = UvscInProgress(
     expectedTime = this?.expectedTime ?: "-"
 )
 
-fun UvscInfo?.toUvscInProgress(progressTime: Int = 0, recentUvscTime: String) = UvscInProgress(
-    progressTime = progressTime,
-    recentUvscTime = recentUvscTime,
-    uvscTime = this?.uvscTime ?: "-",
-    uvscResult = this?.uvscResult ?: "-",
-    expectedTime = this?.expectedTime ?: "-"
-)
-
 fun UvscInfo?.toUvscInProgress(
     progressTime: Int = 0,
     uvscTime: String = "-",
