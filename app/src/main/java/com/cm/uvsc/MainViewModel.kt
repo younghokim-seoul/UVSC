@@ -40,6 +40,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -275,6 +276,7 @@ class MainViewModel @Inject constructor(
                 ReceiveScanResult(newMap, changedPacket)
             }
             .mapNotNull { it.changedPacket }
+            .filterNot { it is AcsPacket.ModeChange && (it.valueAsString == "100" || it.valueAsString == "200") }
             .onEach { updateReceiveData(it) }
             .launchIn(viewModelScope)
     }
