@@ -54,6 +54,9 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
+import java.time.format.SignStyle
+import java.time.temporal.ChronoField
 import javax.inject.Inject
 
 @HiltViewModel
@@ -96,7 +99,26 @@ class MainViewModel @Inject constructor(
     val uiEvent = _uiEvent.asSharedFlow()
 
     private var modeType: ModeType = ModeType.Charging
-    private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    private val formatter: DateTimeFormatter by lazy {
+        DateTimeFormatterBuilder()
+            .appendPattern("yyyy-MM-dd")
+            .optionalStart()
+            .appendLiteral(' ')
+            .appendValue(ChronoField.HOUR_OF_DAY, 1, 2, SignStyle.NOT_NEGATIVE)
+            .optionalStart()
+            .appendLiteral(':')
+            .appendValue(ChronoField.MINUTE_OF_HOUR, 1, 2, SignStyle.NOT_NEGATIVE)
+            .optionalStart()
+            .appendLiteral(':')
+            .appendValue(ChronoField.SECOND_OF_MINUTE, 1, 2, SignStyle.NOT_NEGATIVE)
+            .optionalEnd()
+            .optionalEnd()
+            .optionalEnd()
+            .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
+            .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
+            .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
+            .toFormatter()
+    }
 
     init {
         Timber.i("bleRepository => $bleRepository")
@@ -178,6 +200,10 @@ class MainViewModel @Inject constructor(
 
         _homeUiState.update { state ->
             val info = state as? UvscInfo
+            if (newValue == info?.recentUvscTime) {
+                return@update state
+            }
+
             val newDateTime = runCatching { LocalDateTime.parse(newValue, formatter) }.getOrNull()
             val currentDateTime =
                 runCatching { LocalDateTime.parse(info?.recentUvscTime, formatter) }.getOrNull()
