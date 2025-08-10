@@ -22,12 +22,7 @@ sealed interface UvscHistoryColumn {
         override fun getValue(history: UvscHistory) = history.result ?: "-"
     }
 
-    data object Note : UvscHistoryColumn {
-        override val title = "비고"
-        override fun getValue(history: UvscHistory) = history.note ?: "-"
-    }
-
     companion object {
-        val ordered: List<UvscHistoryColumn> = listOf(Date, Time, Result, Note)
+        val ordered: List<UvscHistoryColumn> = listOf(Date, Time, Result)
     }
 }
