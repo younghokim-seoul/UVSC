@@ -88,32 +88,24 @@ fun PreviewUSCVRoute() {
         padding = PaddingValues(0.dp),
         historyList = listOf(
             UvscHistory(
-                index = 1,
                 date = "2025.09.08",
                 time = 25480,
-                result = "정상",
-                note = "특이사항 없음"
+                result = "정상"
             ),
             UvscHistory(
-                index = 2,
                 date = "2025.09.07",
                 time = 25480,
-                result = "비정상",
-                note = "배터리 부족"
+                result = "비정상"
             ),
             UvscHistory(
-                index = 3,
                 date = "2025.09.06",
                 time = 25480,
-                result = "정상",
-                note = "정상 작동"
+                result = "정상"
             ),
             UvscHistory(
-                index = 4,
                 date = "2025.09.05",
                 time = 25480,
-                result = "정상",
-                note = "정상 작동"
+                result = "정상"
             )
         )
     )

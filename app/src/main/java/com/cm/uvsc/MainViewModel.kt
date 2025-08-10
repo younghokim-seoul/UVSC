@@ -256,18 +256,14 @@ class MainViewModel @Inject constructor(
         Timber.i("Received ACH packet: $packet")
         val parts = packet.valueAsString.splitTrimmed()
 
-        val index = parts.getOrNull(0)?.toIntOrNull() ?: 0
-        val date = parts.getOrNull(1)?.normalizeDate()
-        val time = parts.getOrNull(2)?.toIntOrNull()
-        val result = parts.getOrNull(3)
-        val note = parts.getOrNull(4)
+        val date = parts.getOrNull(0)?.normalizeDate()
+        val time = parts.getOrNull(1)?.toIntOrNull()
+        val result = parts.getOrNull(2)
 
         val entry = UvscHistory(
-            index = index,
             date = date,
             time = time,
-            result = result,
-            note = note
+            result = result
         )
 
         _uvscHistoryList.update { current ->
