@@ -197,7 +197,7 @@ class MainViewModel @Inject constructor(
 
     private fun updateUiStateFromAchs(packet: AchsPacket) {
         Timber.i("Received ACSH packet: $packet")
-        val (timeStr, resultStr, expectedStr) = packet.valueAsString.splitTrimmed().let {
+        val (newTime, newResult, newExpectedTime) = packet.valueAsString.splitTrimmed().let {
             Triple(it.getOrNull(0), it.getOrNull(1), it.getOrNull(2))
         }
 
@@ -208,15 +208,15 @@ class MainViewModel @Inject constructor(
             val curR = info?.uvscResult
             val curE = info?.expectedTime
 
-            val newT = timeStr?.toIntOrNull()
-            val newR = resultStr?.toIntOrNull()
-            val newE = expectedStr?.toIntOrNull()
+            val newT = newTime?.toIntOrNull()
+            val newR = newResult?.toIntOrNull()
+            val newE = newExpectedTime?.toIntOrNull()
 
-            val time  = maxOf(newT ?: 0, curT ?: 0)
-            val result = maxOf(newR ?: 0, curR ?: 0)
-            val expectedTime = maxOf(newE ?: 0, curE ?: 0)
+            val latestUvscTime = maxOf(newT ?: 0, curT ?: 0)
+            val latestUvscResult = maxOf(newR ?: 0, curR ?: 0)
+            val latestExpectedTime = maxOf(newE ?: 0, curE ?: 0)
 
-            state.withAchs(time, result, expectedTime)
+            state.withAchs(latestUvscTime, latestUvscResult, latestExpectedTime)
         }
     }
 
@@ -257,7 +257,7 @@ class MainViewModel @Inject constructor(
         val parts = packet.valueAsString.splitTrimmed()
 
         val index = parts.getOrNull(0)?.toIntOrNull() ?: 0
-        val date = runCatching { parts.getOrNull(1)?.normalizeDate() }.getOrNull()
+        val date = parts.getOrNull(1)?.normalizeDate()
         val time = parts.getOrNull(2)?.toIntOrNull()
         val result = parts.getOrNull(3)
         val note = parts.getOrNull(4)

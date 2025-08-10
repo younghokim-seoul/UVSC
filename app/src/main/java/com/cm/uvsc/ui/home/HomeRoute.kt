@@ -95,7 +95,8 @@ fun InfoPanel(info: UvscInfo?, batteryIcon: Int) {
             ) {
                 val time = if (info?.uvscTime == null) "-" else info.uvscTime.toString()
                 val result = if (info?.uvscResult == null) "-" else info.uvscResult.toString()
-                val expectedTime = if (info?.expectedTime == null) "-" else info.expectedTime.toString()
+                val expectedTime =
+                    if (info?.expectedTime == null) "-" else info.expectedTime.toString()
 
                 InfoRow(label = "최근 UVSC 시각", value = info?.recentUvscTime ?: "-")
                 InfoRow(label = "UVSC 시간", value = time)
