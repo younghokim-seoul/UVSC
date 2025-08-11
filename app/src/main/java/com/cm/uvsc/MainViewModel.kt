@@ -205,12 +205,7 @@ class MainViewModel @Inject constructor(
             }
 
             val newDateTime = runCatching { LocalDateTime.parse(newValue, formatter) }.getOrNull()
-            val currentDateTime =
-                runCatching { LocalDateTime.parse(info?.recentUvscTime, formatter) }.getOrNull()
-
-            if (newDateTime != null
-                && (currentDateTime == null || newDateTime.isAfter(currentDateTime))
-            ) {
+            if (newDateTime != null) {
                 when (state) {
                     is HomeUiState.Charging -> state.copy(recentUvscTime = newValue)
                     is HomeUiState.UvscInProgress -> state.copy(recentUvscTime = newValue)
