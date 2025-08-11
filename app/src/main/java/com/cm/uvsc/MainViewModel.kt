@@ -105,18 +105,7 @@ class MainViewModel @Inject constructor(
             .optionalStart()
             .appendLiteral(' ')
             .appendValue(ChronoField.HOUR_OF_DAY, 1, 2, SignStyle.NOT_NEGATIVE)
-            .optionalStart()
-            .appendLiteral(':')
-            .appendValue(ChronoField.MINUTE_OF_HOUR, 1, 2, SignStyle.NOT_NEGATIVE)
-            .optionalStart()
-            .appendLiteral(':')
-            .appendValue(ChronoField.SECOND_OF_MINUTE, 1, 2, SignStyle.NOT_NEGATIVE)
             .optionalEnd()
-            .optionalEnd()
-            .optionalEnd()
-            .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
-            .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
-            .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
             .toFormatter()
     }
 
