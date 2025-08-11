@@ -289,7 +289,7 @@ class MainViewModel @Inject constructor(
 
         _uvscHistoryList.update { current ->
             (listOf(entry) + current)
-                .distinctBy { it.date to it.time }
+                .distinctBy { it.date }
                 .sortedWith(compareByDescending<UvscHistory> { it.date }.thenByDescending { it.time })
                 .take(10)
         }

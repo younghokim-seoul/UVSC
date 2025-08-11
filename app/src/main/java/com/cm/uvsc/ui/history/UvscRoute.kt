@@ -38,7 +38,7 @@ fun USCVRoute(
         LazyColumn {
             itemsIndexed(
                 items = historyList,
-                key = { _, item -> item.date + item.time.toString() }
+                key = { _, item -> item.date ?: "-" }
             ) { index, item ->
                 HistoryTableRow(item, index % 2 != 0)
             }
